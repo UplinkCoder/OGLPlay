@@ -311,6 +311,8 @@ int main()
     int di;
     while (lastKey != 'q')
     {
+		if (x-- == 0)
+		    x = xInit;
         switch (lastKey)
         {
         case 't':
