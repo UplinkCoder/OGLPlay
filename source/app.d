@@ -1,60 +1,9 @@
 import std.stdio;
-
+import vector;
 // For core API functions.
 import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
 import std.conv;
-
-float d2r(float x)
-{
-    import std.math;
-
-    return x * (PI / 180);
-}
-
-static immutable opBinaryVectorMixin = q{
-    auto opBinary(string op, VT)(const VT rhs)
-    {
-
-        static if (is(VT == v3) || is(VT == v2) || is(VT == v4))
-        {
-            static if (op == "+" || op == "-")
-            {
-                typeof(this) result;
-                foreach (i; 0 .. min(cast(uint) E.length, cast(uint) rhs.E.length))
-                {
-                    mixin("result.E[i] = E[i] " ~ op ~ " rhs.E[i];");
-                }
-            }
-            else static if (op == "*")
-            {
-                typeof(this.E[0]) result;
-                foreach (i; 0 .. min(cast(uint) E.length, cast(uint) rhs.E.length))
-                {
-                    result += E[i] * rhs.E[i];
-                }
-            }
-            else
-                static assert("No can do \"" ~ op ~ "\"");
-        }
-        else static if (is(VT : float))
-        {
-			static if (op == "*")
-            {
-                typeof(this) result;
-                foreach (i; 0 .. E.length)
-                {
-                    result.E[i] = E[i] * rhs;
-                }
-                pragma(msg, "*");
-            }
-        }
-        else
-            static assert("No can do");
-
-        return result;
-    }
-};
 
 struct init_opengl_result
 {
@@ -112,117 +61,6 @@ void ShutdownOpenGL(init_opengl_result gl)
     DerelictSDL2.unload();
 }
 
-uint min(uint a, uint b)
-{
-    return a < b ? a : b;
-}
-
-struct v2
-{
-    union
-    {
-        struct
-        {
-            float x, y;
-        }
-
-        float[2] E;
-    }
-
-    mixin(opBinaryVectorMixin);
-    alias toPtr this;
-    const(float)* toPtr() const pure nothrow
-    {
-        return &E[0];
-    }
-
-    v2 perp()
-    {
-        return v2(-y, x);
-    }
-
-    v2 mirror()
-    {
-        return v2(y, x);
-    }
-
-    v3 V3(float z = 0.0) const pure nothrow
-    {
-        return v3(x, y, z);
-    }
-
-    v4 V4(float z = 0.0, float w = 1.0) const pure nothrow
-    {
-        return v4(x, y, z, w);
-    }
-}
-
-struct v3
-{
-    union
-    {
-        struct
-        {
-            float r, g, b = 0.0;
-        }
-
-        struct
-        {
-            float x, y, z;
-        }
-
-        float[3] E;
-    }
-
-    alias toPtr this;
-    const(float)* toPtr() const pure nothrow
-    {
-        return &E[0];
-    }
-
-    mixin(opBinaryVectorMixin);
-
-    v2 V2() const pure nothrow
-    {
-        return v2(x, y);
-    }
-
-    v4 V4(float w) const pure nothrow
-    {
-        return v4(x, y, z, w);
-    }
-}
-
-struct v4
-{
-    union
-    {
-        struct
-        {
-            float r, g, b, a;
-        }
-
-        struct
-        {
-            float x, y, z, w;
-        }
-
-        float[4] E;
-    }
-
-    alias toPtr this;
-    const(float)* toPtr() const pure nothrow
-    {
-        return &E[0];
-    }
-
-    mixin(opBinaryVectorMixin);
-
-    v3 V3() const pure nothrow
-    {
-        return v3(r, g, b);
-    }
-}
 
 char getKey()
 {
@@ -275,8 +113,7 @@ int main()
         return x % primes[idx];
     }
 
-    v3[] centeredTriangle = [v3(-0.5, -0.5, 0.0), v3(0.0, 0.5, 0.0), v3(0.5, -0.5,
-        0.0)];
+    v3[] centeredTriangle = [v3(-0.5, -0.5, 0.0), v3(0.0, 0.5, 0.0), v3(0.5, -0.5, 0.0)];
     v3[] points1 = [v3(-1.0, -1.0, 0.0), v3(0.0, 0.0, 0.0), v3(0.0, -1.0, 0.0)];
     v3[] points2 = [v3(1.0, 0.0, 0.0), v3(0.0, 0.0, 0.0), v3(0.0, -1.0, 0.0)];
     v3[] points4 = [v3(1.0, -1.0, 0.0), v3(0.0, 0.0, 0.0), v3(1.0, 1.0, 0.0)];
@@ -352,30 +189,30 @@ int main()
                 {
                     foreach (ip, _p; points[i])
                     {
-                        auto np = v2(-_p.y, _p.x).V3;
+                        auto np = v2(-_p.y, _p.x);
                         glColor3fv(colorTable[ip]);
-                        glVertex3fv(np * scale);
+                        glVertex2fv(np * scale);
                     }
                     
                     foreach (ip, _p; points[i])
                     {
-                        auto np = v2(-_p.x, -_p.y,).V3;
+                        auto np = v2(-_p.x, -_p.y);
                         glColor3fv(colorTable[ip]);
-                        glVertex3fv(np * scale * xm);
+                        glVertex2fv(np * scale);
                     }
                     
                     foreach (ip, _p; points[i])
                     {
-                        auto np = v2(_p.y,-_p.x).V3;
+                        auto np = v2(_p.y,-_p.x);
                         glColor3fv(colorTable[ip]);
-                        glVertex3fv(np * scale);
+                        glVertex2fv(np * scale);
                     }
                 }
             }
             foreach (ip, _p; points[i])
             {
                 glColor3fv(colorTable[ip]);
-                glVertex3fv(_p- (deform ? centeredTriangle[di % centeredTriangle.length] : v3(0,0,0)));
+                glVertex3fv(_p- (translate ? centeredTriangle[di % centeredTriangle.length] : v3(0,0,0)));
             }
             glEnd();
         }
