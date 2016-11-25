@@ -1,5 +1,10 @@
-module math;
 import std.math;
+
+struct rectangle2
+{
+    v2 MinCorner; /// Left-Bottom
+    v2 MaxCorner; /// Right-Top
+}
 
 uint min(uint a, uint b)
 {
@@ -8,7 +13,7 @@ uint min(uint a, uint b)
 
 double r2d(double x)
 {
-    return (x) * (180/PI);
+    return (x) * (180 / PI);
 }
 
 float d2r(float x)

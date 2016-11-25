@@ -1,5 +1,7 @@
 import std.stdio;
+import core.stdc.string;
 import vector;
+
 // For core API functions.
 import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
@@ -61,7 +63,6 @@ void ShutdownOpenGL(init_opengl_result gl)
     DerelictSDL2.unload();
 }
 
-
 char getKey()
 {
     SDL_Event e;
@@ -101,7 +102,6 @@ char getKey()
 
 }
 
-
 int main()
 {
     auto ctx = InitOpenGL();
@@ -113,7 +113,8 @@ int main()
         return x % primes[idx];
     }
 
-    v3[] centeredTriangle = [v3(-0.5, -0.5, 0.0), v3(0.0, 0.5, 0.0), v3(0.5, -0.5, 0.0)];
+    v3[] centeredTriangle = [v3(-0.5, -0.5, 0.0), v3(0.0, 0.5, 0.0), v3(0.5, -0.5,
+        0.0)];
     v3[] points1 = [v3(-1.0, -1.0, 0.0), v3(0.0, 0.0, 0.0), v3(0.0, -1.0, 0.0)];
     v3[] points2 = [v3(1.0, 0.0, 0.0), v3(0.0, 0.0, 0.0), v3(0.0, -1.0, 0.0)];
     v3[] points4 = [v3(1.0, -1.0, 0.0), v3(0.0, 0.0, 0.0), v3(1.0, 1.0, 0.0)];
@@ -148,9 +149,9 @@ int main()
     int di;
     while (lastKey != 'q')
     {
-		if (x-- == 0)
-		    x = xInit;
-		    
+        if (x-- == 0)
+            x = xInit;
+
         switch (lastKey)
         {
         case 't':
@@ -168,9 +169,9 @@ int main()
         case 'r':
             scale = 1.0;
             break;
-        case 'd' :
-             translate = !!(di++ % 4);
-             break;
+        case 'd':
+            translate = !!(di++ % 4);
+            break;
         default:
             break;
 
@@ -193,17 +194,17 @@ int main()
                         glColor3fv(colorTable[ip]);
                         glVertex2fv(np * scale);
                     }
-                    
+
                     foreach (ip, _p; points[i])
                     {
                         auto np = v2(-_p.x, -_p.y);
                         glColor3fv(colorTable[ip]);
                         glVertex2fv(np * scale);
                     }
-                    
+
                     foreach (ip, _p; points[i])
                     {
-                        auto np = v2(_p.y,-_p.x);
+                        auto np = v2(_p.y, -_p.x);
                         glColor3fv(colorTable[ip]);
                         glVertex2fv(np * scale);
                     }
@@ -212,7 +213,9 @@ int main()
             foreach (ip, _p; points[i])
             {
                 glColor3fv(colorTable[ip]);
-                glVertex3fv(_p- (translate ? centeredTriangle[di % centeredTriangle.length] : v3(0,0,0)));
+                glVertex3fv(
+                    _p - (translate ? centeredTriangle[di % centeredTriangle.length] : v3(0,
+                    0, 0)));
             }
             glEnd();
         }
@@ -221,5 +224,7 @@ int main()
 
     scope (exit)
         ShutdownOpenGL(ctx);
+    auto slv = glGetString(GL_SHADING_LANGUAGE_VERSION);
+    writeln(slv[0 .. strlen(slv)]);
     return 0;
 }
