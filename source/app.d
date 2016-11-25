@@ -6,9 +6,11 @@ import vector;
 import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
 import std.conv;
-
+import arsd.ttf;
+import render;
 struct init_opengl_result
 {
+    v2 TargetDimensions;
     SDL_Window* window;
     SDL_GLContext context;
 
@@ -37,14 +39,14 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
+        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL);
     if (!Result.window)
         throw new Error("Failed to create window: " ~ to!string(SDL_GetError()));
     SDL_GetWindowSize(Result.window, &winWidth, &winHeight);
     Result.context = SDL_GL_CreateContext(Result.window);
     SDL_GL_MakeCurrent(Result.window, Result.context);
     glViewport(0, 0, winWidth, winHeight);
-    writeln("Width:", winWidth, " Height:", winHeight);
+    Result.TargetDimensions = v2(winWidth, winHeight);
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
@@ -151,7 +153,7 @@ int main()
     {
         if (x-- == 0)
             x = xInit;
-
+        writeln("lastKey: ", lastKey);
         switch (lastKey)
         {
         case 't':
@@ -178,53 +180,20 @@ int main()
         }
         lastKey = getKey();
         float xm = x * xInv;
-        //rotate(&points[0], xm);
-        //rotate(&points[1], xm);
-        //rotate(&points[2], xm);
-        glClear(GL_COLOR_BUFFER_BIT);
-        int i = ctr % cast(int) points.length;
+
+        //auto renderer = beginRender(ctx.TargetDimensions);
+        //with(renderer)
         {
-            glBegin(GL_TRIANGLES);
-            if (showTransformed)
-            {
-                {
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(-_p.y, _p.x);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
-
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(-_p.x, -_p.y);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
-
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(_p.y, -_p.x);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
-                }
-            }
-            foreach (ip, _p; points[i])
-            {
-                glColor3fv(colorTable[ip]);
-                glVertex3fv(
-                    _p - (translate ? centeredTriangle[di % centeredTriangle.length] : v3(0,
-                    0, 0)));
-            }
-            glEnd();
+          
         }
-        SDL_GL_SwapWindow(ctx.window);
+        //endRender(renderer, ctx.window);
     }
 
     scope (exit)
         ShutdownOpenGL(ctx);
     auto slv = glGetString(GL_SHADING_LANGUAGE_VERSION);
+        writeln("lastKey: ", lastKey);
+
     writeln(slv[0 .. strlen(slv)]);
     return 0;
 }

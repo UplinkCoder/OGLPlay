@@ -48,14 +48,13 @@ static immutable opBinaryVectorMixin = q{
         }
         else static if (is(VT : float))
         {
-			static if (op == "*")
+	    static if (op == "*" || op == "/")
             {
                 typeof(this) result;
                 foreach (i; 0 .. E.length)
                 {
-                    result.E[i] = E[i] * rhs;
+                    mixin("result.E[i] = E[i] " ~ op ~ " rhs;");
                 }
-                pragma(msg, "*");
             }
         }
         else
