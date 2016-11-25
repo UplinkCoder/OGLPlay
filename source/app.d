@@ -313,6 +313,7 @@ int main()
     {
 		if (x-- == 0)
 		    x = xInit;
+		    
         switch (lastKey)
         {
         case 't':
@@ -360,7 +361,7 @@ int main()
                     {
                         auto np = v2(-_p.x, -_p.y,).V3;
                         glColor3fv(colorTable[ip]);
-                        glVertex3fv(np * scale);
+                        glVertex3fv(np * scale * xm);
                     }
                     
                     foreach (ip, _p; points[i])
