@@ -8,6 +8,7 @@ import derelict.sdl2.sdl;
 import std.conv;
 import arsd.ttf;
 import render;
+
 struct init_opengl_result
 {
     v2 TargetDimensions;
@@ -47,7 +48,7 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     SDL_GL_MakeCurrent(Result.window, Result.context);
     glViewport(0, 0, winWidth, winHeight);
     Result.TargetDimensions = v2(winWidth, winHeight);
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(1);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
     DerelictGL3.reload();
@@ -127,7 +128,6 @@ int main()
     v3[] colorTable = [v3(1.0, 0.0, 0.0), v3(0.0, 1.0, 0.0), v3(0.0, 0.0, 1.0)];
 
     int x = xInit;
-    glClearColor(0.5, 0.5, 0.5, 1.0);
 
     v3[2] rotateAxis(float d_angle)
     {
@@ -146,14 +146,19 @@ int main()
     char lastKey;
     bool showTransformed;
     bool translate;
+    v4 ClearColor = v4(0.5, 0.1, 0.5);
     float scale = 1.0;
     int ctr;
     int di;
     while (lastKey != 'q')
     {
         if (x-- == 0)
+        {
             x = xInit;
-        writeln("lastKey: ", lastKey);
+            glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
+            glClear(GL_COLOR_BUFFER_BIT);
+            SDL_GL_SwapWindow(ctx.window);
+        }
         switch (lastKey)
         {
         case 't':
@@ -184,7 +189,7 @@ int main()
         //auto renderer = beginRender(ctx.TargetDimensions);
         //with(renderer)
         {
-          
+
         }
         //endRender(renderer, ctx.window);
     }
@@ -192,7 +197,7 @@ int main()
     scope (exit)
         ShutdownOpenGL(ctx);
     auto slv = glGetString(GL_SHADING_LANGUAGE_VERSION);
-        writeln("lastKey: ", lastKey);
+    writeln("lastKey: ", lastKey);
 
     writeln(slv[0 .. strlen(slv)]);
     return 0;
