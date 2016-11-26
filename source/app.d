@@ -48,7 +48,7 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     SDL_GL_MakeCurrent(Result.window, Result.context);
     glViewport(0, 0, winWidth, winHeight);
     Result.TargetDimensions = v2(winWidth, winHeight);
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
     DerelictGL3.reload();
@@ -88,6 +88,8 @@ char getKey()
                 return 'c';
             case SDLK_w:
                 return 'w';
+            case SDLK_a:
+                return 'a';
             case SDLK_s:
                 return 's';
             case SDLK_d:
@@ -152,12 +154,28 @@ int main()
     int di;
     while (lastKey != 'q')
     {
+          switch(lastKey)
+          {
+            case 'a' : ClearColor.r += 0.1; break;
+            case 's' : ClearColor.g += 0.1; break;
+            case 'd' : ClearColor.b += 0.1; break;
+            case 'w' : ClearColor = v4(.1,.1,.1,1.0); break;
+            default : break;
+          }
+
         if (x-- == 0)
         {
             x = xInit;
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
-            glClear(GL_COLOR_BUFFER_BIT);
+           glClear(GL_COLOR_BUFFER_BIT);
+          glBegin(GL_TRIANGLES);
+          glColor4f(1.0, 1.0, 1.0, 1.0);
+          glVertex3f(-1.0,-1.0, 0.0);
+          glVertex3f(1.0,-1.0, 0.0);
+          glVertex3f(0.0,1.0,0.0);
+          glEnd();
             SDL_GL_SwapWindow(ctx.window);
+
         }
         switch (lastKey)
         {
@@ -186,12 +204,13 @@ int main()
         lastKey = getKey();
         float xm = x * xInv;
 
-        //auto renderer = beginRender(ctx.TargetDimensions);
-        //with(renderer)
+//        auto renderer = beginRender(ctx.TargetDimensions);
+//        with(renderer)
         {
-
+//          Rect(v2(0.0, 0.0), v2(500,500), v4(1.0,1.0,1.0,1.0));
         }
-        //endRender(renderer, ctx.window);
+//        endRender(renderer, ctx.window);
+
     }
 
     scope (exit)

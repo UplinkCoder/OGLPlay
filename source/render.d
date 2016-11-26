@@ -29,14 +29,14 @@ void Rect_(renderer* R, v2 A, v2 B, v4 Color, uint Plane = 0)
 /// This assumes that an openGL-Context is already open and ready to draw to;
 void endRender(renderer* Renderer, SDL_Window* window)
 {
-    //  glBegin(GL_TRIANGLES);
+      glBegin(GL_TRIANGLES);
     foreach (PI; 0 .. Renderer.ElementPlanes.length)
         foreach (EI; 0 .. Renderer.ElementCount[PI])
         {
             auto Element = Renderer.ElementPlanes[EI][PI];
             render_rectangle(Element.A, Element.B, Element.Color);
         }
-    //  glEnd();
+      glEnd();
     SDL_GL_SwapWindow(window);
 }
 
