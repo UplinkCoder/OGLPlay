@@ -32,15 +32,15 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     {
         // SDL_Init returns a negative number on error.
         writeln("SDL Video subsystem failed to initialize");
-        return init_opengl_result.init;
+        return Result;
     }
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL);
+        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
     if (!Result.window)
         throw new Error("Failed to create window: " ~ to!string(SDL_GetError()));
     SDL_GetWindowSize(Result.window, &winWidth, &winHeight);
@@ -94,6 +94,12 @@ char getKey()
                 return 's';
             case SDLK_d:
                 return 'd';
+            case SDLK_j:
+                return 'j';
+            case SDLK_k:
+                return 'k';
+            case SDLK_l:
+                return 'l';
             case SDLK_r:
                 return 'r';
 
@@ -110,7 +116,7 @@ char getKey()
 int main()
 {
     auto ctx = InitOpenGL();
-    enum xInit = 512;
+    enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
     uint toUnique1_3(uint x, uint idx)
@@ -149,75 +155,75 @@ int main()
     bool showTransformed;
     bool translate;
     v4 ClearColor = v4(0.5, 0.1, 0.5);
+    v4 TriangleColor = v4(1.0, 1.0, 1.0);
     float scale = 1.0;
     int ctr;
     int di;
     while (lastKey != 'q')
     {
-          switch(lastKey)
-          {
-            case 'a' : ClearColor.r += 0.1; break;
-            case 's' : ClearColor.g += 0.1; break;
-            case 'd' : ClearColor.b += 0.1; break;
-            case 'w' : ClearColor = v4(.1,.1,.1,1.0); break;
-            default : break;
-          }
+        float xm = x * xInv;
+
+        switch (lastKey)
+        {
+        case 'a':
+            ClearColor.r += 0.1;
+            break;
+        case 's':
+            ClearColor.g += 0.1;
+            break;
+        case 'd':
+            ClearColor.b += 0.1;
+            break;
+        case 'w':
+            ClearColor = v4(.1, .1, .1, 1.0);
+            break;
+        case 'j':
+            TriangleColor.r -= 0.1;
+            break;
+        case 'k':
+            TriangleColor.g -= 0.1;
+            break;
+        case 'l':
+            TriangleColor.b -= 0.1;
+            break;
+        case 'i':
+            TriangleColor = v4(1.0, 1.0, 1.0, 1.0);
+            break;
+        default:
+            break;
+        }
 
         if (x-- == 0)
         {
             x = xInit;
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
-           glClear(GL_COLOR_BUFFER_BIT);
-          glBegin(GL_TRIANGLES);
-          glColor4f(1.0, 1.0, 1.0, 1.0);
-          glVertex3f(-1.0,-1.0, 0.0);
-          glVertex3f(1.0,-1.0, 0.0);
-          glVertex3f(0.0,1.0,0.0);
-          glEnd();
-            SDL_GL_SwapWindow(ctx.window);
-
+            glClear(GL_COLOR_BUFFER_BIT);
+            auto renderer = beginRender(ctx.TargetDimensions);
+            import std.numeric;
+            float XYgcd = gcd(cast(uint)ctx.TargetDimensions.x, cast(uint)ctx.TargetDimensions.y);
+            Rect_(renderer, v2(-1.0,-1.0), v2(0.0,0.0), TriangleColor);
+            Rect_(renderer, v2(-0.9,-0.9), v2(0.0,0.0), TriangleColor*0.1);
+            Rect_(renderer, v2(-0.7,-0.7), v2(0.0,0.0), TriangleColor*0.3);
+            Rect_(renderer, v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
+            endRender(renderer, ctx.window);
         }
-        switch (lastKey)
-        {
-        case 't':
-            showTransformed = !showTransformed;
-            break;
-        case 'c':
-            ctr++;
-            break;
-        case 'w':
-            scale += (0.33);
-            break;
-        case 's':
-            scale -= (0.33);
-            break;
-        case 'r':
-            scale = 1.0;
-            break;
-        case 'd':
-            translate = !!(di++ % 4);
-            break;
-        default:
-            break;
 
-        }
         lastKey = getKey();
-        float xm = x * xInv;
-
-//        auto renderer = beginRender(ctx.TargetDimensions);
-//        with(renderer)
-        {
-//          Rect(v2(0.0, 0.0), v2(500,500), v4(1.0,1.0,1.0,1.0));
-        }
-//        endRender(renderer, ctx.window);
-
     }
 
     scope (exit)
         ShutdownOpenGL(ctx);
-    auto slv = glGetString(GL_SHADING_LANGUAGE_VERSION);
-    writeln("lastKey: ", lastKey);
 
-    writeln(slv[0 .. strlen(slv)]);
     return 0;
+}
+
+void renderTriangle(v4 c, float scale = 1.0)
+{
+    glBegin(GL_TRIANGLES);
+    glColor4f(c.r, c.g, c.b, 1.0);
+    glVertex3fv(v3(-1.0, -1.0, 0.0) * scale);
+    glVertex3fv(v3(1.0, -1.0, 0.0) * scale);
+    glVertex3fv(v3(0.0, 1.0, 0.0) * scale);
+    glEnd();
+
 }

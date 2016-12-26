@@ -6,7 +6,6 @@
 	"dependencies": {
 		"derelict-gl3": "~>1.0.19",
 		"derelict-sdl2": "~>2.1.0",
-		"imageformats": "~>6.1.0"
 	},
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2016, root",

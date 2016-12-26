@@ -22,6 +22,16 @@ float d2r(float x)
 }
 
 static immutable opBinaryVectorMixin = q{
+    VT Had(VT)(const VT rhs)
+    {
+        typeof(this) result;
+        foreach (i; 0 .. min(cast(uint) E.length, cast(uint) rhs.E.length))
+        {
+            result.E[i] = E[i] * rhs.E[i];
+        }
+        return result;
+    
+    }
     auto opBinary(string op, VT)(const VT rhs)
     {
 
@@ -110,7 +120,7 @@ struct v3
     {
         struct
         {
-            float r, g, b = 0.0;
+            float r = 0.0, g = 0.0, b = 0.0;
         }
 
         struct
