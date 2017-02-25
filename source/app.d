@@ -23,7 +23,13 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     init_opengl_result Result;
     // Load OpenGL versions 1.0 and 1.1.
     DerelictGL.load();
-    DerelictSDL2.load();
+    try
+    {
+        DerelictSDL2.load();
+    } catch (derelict.util.exception.SymbolLoadException se) {
+      writeln("got an execption: " ~ se.msg);
+    }
+    writeln("going to init");
     // Initialize SDL Video subsystem.
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -31,25 +37,40 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
         writeln("SDL Video subsystem failed to initialize");
         return init_opengl_result.init;
     }
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+    writeln("going to create window");
+    SDL_DisplayMode currentDisplayMode;
+    uint window_flags = SDL_WINDOW_OPENGL;
+    if (SDL_GetCurrentDisplayMode(0, &currentDisplayMode) < 0)
+    {
+        // assume that 0 is the current display;
+        writefln("minor: could not get display mode defaulting to %dx%d window", winWidth, winHeight);
+    }
+    else
+    {
+        winWidth = currentDisplayMode.w;
+        winHeight = currentDisplayMode.h;
+        window_flags |= SDL_WINDOW_FULLSCREEN;
+    }
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
+        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, window_flags);
     if (!Result.window)
         throw new Error("Failed to create window: " ~ to!string(SDL_GetError()));
     SDL_GetWindowSize(Result.window, &winWidth, &winHeight);
     Result.context = SDL_GL_CreateContext(Result.window);
     SDL_GL_MakeCurrent(Result.window, Result.context);
+    writeln("going to set gl_context attributes");
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
+
     glViewport(0, 0, winWidth, winHeight);
     writeln("Width:", winWidth, " Height:", winHeight);
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
     DerelictGL3.reload();
-
+    writeln("finished init");
     return Result;
 }
 
