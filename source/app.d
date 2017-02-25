@@ -11,6 +11,7 @@ struct init_opengl_result
 {
     SDL_Window* window;
     SDL_GLContext context;
+    v2 displayDim;
 
     bool opCast(T : bool)()
     {
@@ -18,7 +19,7 @@ struct init_opengl_result
     }
 }
 
-init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
+init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 {
     init_opengl_result Result;
     // Load OpenGL versions 1.0 and 1.1.
@@ -43,20 +44,21 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     if (SDL_GetCurrentDisplayMode(0, &currentDisplayMode) < 0)
     {
         // assume that 0 is the current display;
-        writefln("minor: could not get display mode defaulting to %dx%d window", winWidth, winHeight);
+        writefln("minor: could not get display mode defaulting to %dx%d window", winDim.x, winDim.y);
     }
     else
     {
-        winWidth = currentDisplayMode.w;
-        winHeight = currentDisplayMode.h;
-        window_flags |= SDL_WINDOW_FULLSCREEN;
+        winDim = Result.displayDim = v2(currentDisplayMode.w, currentDisplayMode.h);
+        winDim = winDim * 0.8;
+        //window_flags |= SDL_WINDOW_FULLSCREEN;
     }
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED, winWidth, winHeight, window_flags);
+        SDL_WINDOWPOS_CENTERED, winDim.xi, winDim.yi, window_flags);
     if (!Result.window)
         throw new Error("Failed to create window: " ~ to!string(SDL_GetError()));
-    SDL_GetWindowSize(Result.window, &winWidth, &winHeight);
+    int windowWidth, windowHeight; 
+    SDL_GetWindowSize(Result.window, &windowWidth, &windowHeight);
     Result.context = SDL_GL_CreateContext(Result.window);
     SDL_GL_MakeCurrent(Result.window, Result.context);
     writeln("going to set gl_context attributes");
@@ -64,8 +66,7 @@ init_opengl_result InitOpenGL(int winWidth = 1024, int winHeight = 786)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
-    glViewport(0, 0, winWidth, winHeight);
-    writeln("Width:", winWidth, " Height:", winHeight);
+    glViewport(0, 0, winDim.xi, winDim.yi);
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));

@@ -48,7 +48,7 @@ static immutable opBinaryVectorMixin = q{
         }
         else static if (is(VT : float))
         {
-			static if (op == "*")
+            static if (op == "*")
             {
                 typeof(this) result;
                 foreach (i; 0 .. E.length)
@@ -72,6 +72,16 @@ struct v2
         struct
         {
             float x, y;
+        }
+
+        @property uint xi() const
+        {
+            return cast(uint)x;
+        }
+
+        @property uint yi() const
+        {
+            return cast(uint)y;
         }
 
         float[2] E;
