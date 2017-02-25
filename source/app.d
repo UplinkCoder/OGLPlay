@@ -40,7 +40,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     }
     writeln("going to create window");
     SDL_DisplayMode currentDisplayMode;
-    uint window_flags = SDL_WINDOW_OPENGL;
+    uint window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
     if (SDL_GetCurrentDisplayMode(0, &currentDisplayMode) < 0)
     {
         // assume that 0 is the current display;
@@ -90,6 +90,7 @@ char getKey()
     SDL_Event e;
     while (SDL_PollEvent(&e) != 0)
     {
+        writeln("Got event Type: ", e.type.to!string);
         // Quit if the user closes the window or presses Q
         if (e.type == SDL_QUIT)
         {
