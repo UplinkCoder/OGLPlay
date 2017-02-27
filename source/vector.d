@@ -4,6 +4,7 @@ struct rectangle2
 {
     v2 MinCorner; /// Left-Bottom
     v2 MaxCorner; /// Right-Top
+    v4 Color;
 }
 
 uint min(uint a, uint b)
@@ -22,6 +23,17 @@ float d2r(float x)
 }
 
 static immutable opBinaryVectorMixin = q{
+    VT Had(VT)(const VT rhs)
+    {
+        typeof(this) result;
+        foreach (i; 0 .. min(cast(uint) E.length, cast(uint) rhs.E.length))
+        {
+            result.E[i] = E[i] * rhs.E[i];
+        }
+        return result;
+    
+    }
+
     auto opBinary(string op, VT)(const VT rhs)
     {
 
@@ -48,14 +60,13 @@ static immutable opBinaryVectorMixin = q{
         }
         else static if (is(VT : float))
         {
-            static if (op == "*")
+	    static if (op == "*" || op == "/")
             {
                 typeof(this) result;
                 foreach (i; 0 .. E.length)
                 {
-                    result.E[i] = E[i] * rhs;
+                    mixin("result.E[i] = E[i] " ~ op ~ " rhs;");
                 }
-                pragma(msg, "*");
             }
         }
         else
@@ -71,7 +82,7 @@ struct v2
     {
         struct
         {
-            float x, y;
+            float x = 0, y = 0;
         }
 
         @property uint xi() const
@@ -121,7 +132,7 @@ struct v3
     {
         struct
         {
-            float r, g, b = 0.0;
+            float r = 0.0, g = 0.0, b = 0.0;
         }
 
         struct
@@ -157,7 +168,7 @@ struct v4
     {
         struct
         {
-            float r, g, b = 0.0, a = 1.0;
+            float r = 0.0, g = 0.0,  b = 0.0, a = 1.0;
         }
 
         struct

@@ -6,16 +6,46 @@ import vector;
 import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
 import std.conv;
+import render;
 
+v2 displayDim;
 struct init_opengl_result
 {
+    v2 TargetDimensions;
     SDL_Window* window;
     SDL_GLContext context;
-    v2 displayDim;
 
     bool opCast(T : bool)()
     {
         return window !is null;
+    }
+}
+import std.algorithm : min, max;
+
+void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, ubyte count, v4 black = v4(0,0,0,1), v4 white = v4(1,1,1,1))
+{
+    float width = upperRightCorner.x - lowerLeftCorner.x;
+    //width *= displayDim.x;
+    float height = upperRightCorner.y - lowerLeftCorner.y;
+    //height *= displayDim.y;
+
+    float ratio = displayDim.x / displayDim.y;
+
+    float sideWidth = max(width, height) / ratio / count;
+    bool isBlack = true;
+    foreach(i;0 .. count)
+    {
+        float sideHeight = sideWidth * ratio;
+        auto yoffset = v2(0, sideHeight * i);
+        foreach(j;0 .. count)
+        {
+            isBlack = !isBlack;
+            auto xoffset = v2(sideWidth * j, 0);
+ //           white = white * (1 / (j+0.0000001));
+//            black = black * (1 / (j+0.0000001));
+            r.Rect(lowerLeftCorner + xoffset + yoffset, lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, (isBlack ? black : white), rotateAxis((90/count)*i));
+        }
+
     }
 }
 
@@ -26,7 +56,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     DerelictGL.load();
     try
     {
-        DerelictSDL2.load();
+        DerelictSDL2.load(SharedLibVersion(2, 0, 2));
     } catch (derelict.util.exception.SymbolLoadException se) {
       writeln("got an execption: " ~ se.msg);
     }
@@ -36,8 +66,9 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     {
         // SDL_Init returns a negative number on error.
         writeln("SDL Video subsystem failed to initialize");
-        return init_opengl_result.init;
+        return Result;
     }
+
     writeln("going to create window");
     SDL_DisplayMode currentDisplayMode;
     uint window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
@@ -48,8 +79,8 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     }
     else
     {
-        winDim = Result.displayDim = v2(currentDisplayMode.w, currentDisplayMode.h);
-        winDim = winDim * 0.8;
+        winDim = displayDim = v2(currentDisplayMode.w, currentDisplayMode.h);
+        winDim = winDim * 0.5;
         //window_flags |= SDL_WINDOW_FULLSCREEN;
     }
 
@@ -61,12 +92,61 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     SDL_GetWindowSize(Result.window, &windowWidth, &windowHeight);
     Result.context = SDL_GL_CreateContext(Result.window);
     SDL_GL_MakeCurrent(Result.window, Result.context);
+
     writeln("going to set gl_context attributes");
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
-    glViewport(0, 0, winDim.xi, winDim.yi);
+ //   glViewport(0, 0, winDim.xi, winDim.yi);
+        
+   // glLoadIdentity();
+
+    struct mat4x4
+    {
+        float[4][4] E;
+
+        this(float[4][4] m)
+        {
+            this.E = m;
+            transpose();
+        }
+
+        void transpose()
+        {
+            import std.algorithm : swap;
+            swap(E[0][1],E[1][0]);
+            swap(E[0][2],E[2][0]);
+            swap(E[0][3],E[3][0]);
+
+            swap(E[1][2],E[2][1]);
+            swap(E[1][3],E[3][1]);
+            swap(E[1][2],E[2][1]);
+
+            swap(E[2][3],E[3][2]);
+        }
+
+        @property const(float)* ptr()
+        {
+            return &E[0][0];
+        }
+        alias ptr this;
+    }
+
+    mat4x4 proj = mat4x4(
+        [
+           [2/displayDim.x,0,0,-1f],
+            [0, 2/displayDim.y,0,-1f],
+            [0,0,1f,0],
+            [0,0,0,1f]
+
+        ]
+   );
+
+//    glLoadMatrixf(proj);
+    //glOrtho(0, 0, 0, 0, 0, 0);
+    Result.TargetDimensions = winDim;
+
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
@@ -85,12 +165,34 @@ void ShutdownOpenGL(init_opengl_result gl)
     DerelictSDL2.unload();
 }
 
-char getKey()
+int EventHandler(void* userdata, SDL_Event* event)
+{
+    switch(event.type)
+    {
+        case SDL_EventType.SDL_KEYDOWN, SDL_EventType.SDL_KEYUP :
+         //   HandleKeys();
+        {}
+        default : {}
+    }
+    return 1;
+}
+char GetKey()
 {
     SDL_Event e;
+
     while (SDL_PollEvent(&e) != 0)
     {
+        if (e.type == SDL_EventType.SDL_WINDOWEVENT)
+        {
+            //glViewport(0, 0, e.window.data1, e.window.data2);
+            writeln("windowEventType:", cast(SDL_WindowEventID)e.window.event);
+        }
         writeln("Got event Type: ", e.type.to!string);
+        if (e.type == SDL_EventType.SDL_MOUSEBUTTONUP)
+        {
+//            Windows
+            writeln("x.y: ", v2(e.button.x, e.button.y));
+        }
         // Quit if the user closes the window or presses Q
         if (e.type == SDL_QUIT)
         {
@@ -98,37 +200,32 @@ char getKey()
         }
         else if (e.type == SDL_KEYDOWN)
         {
-            switch (e.key.keysym.sym)
-            {
-            case SDLK_q:
-                return 'q';
-            case SDLK_t:
-                return 't';
-            case SDLK_c:
-                return 'c';
-            case SDLK_w:
-                return 'w';
-            case SDLK_s:
-                return 's';
-            case SDLK_d:
-                return 'd';
-            case SDLK_r:
-                return 'r';
+               return cast(char) e.key.keysym.sym;
 
-            default:
-                {
-                }
-            }
         }
     }
     return '\0';
 
 }
 
+v2[2] rotateAxis(float d_angle)
+{
+    import std.math;
+    
+    float r_angle = d2r(d_angle);
+    v2[2] Result;
+    float _cos = cos(r_angle);
+    float _sin = sin(r_angle);
+    
+    Result[0] = v2(_cos, _sin);
+    Result[1] = v2(-_sin, _cos);
+    return Result;
+}
+
 int main()
 {
     auto ctx = InitOpenGL();
-    enum xInit = 512;
+    enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
     uint toUnique1_3(uint x, uint idx)
@@ -148,106 +245,87 @@ int main()
     v3[] colorTable = [v3(1.0, 0.0, 0.0), v3(0.0, 1.0, 0.0), v3(0.0, 0.0, 1.0)];
 
     int x = xInit;
-    glClearColor(0.5, 0.5, 0.5, 1.0);
 
-    v3[2] rotateAxis(float d_angle)
-    {
-        import std.math;
 
-        float r_angle = d2r(d_angle);
-        v3[2] Result;
-        float _cos = cos(r_angle);
-        float _sin = sin(r_angle);
-
-        Result[0] = v3(_cos, _sin);
-        Result[1] = v3(-_sin, _cos);
-        return Result;
-    }
 
     char lastKey;
     bool showTransformed;
     bool translate;
+    v4 ClearColor = v4(0.5, 0.1, 0.5);
+    v4 TriangleColor = v4(1.0, 1.0, 1.0);
     float scale = 1.0;
     int ctr;
     int di;
     while (lastKey != 'q')
     {
-        if (x-- == 0)
-            x = xInit;
+        float xm = x * xInv;
 
         switch (lastKey)
         {
-        case 't':
-            showTransformed = !showTransformed;
-            break;
-        case 'c':
-            ctr++;
-            break;
-        case 'w':
-            scale += (0.33);
+        case 'a':
+            ClearColor.r += 0.1;
             break;
         case 's':
-            scale -= (0.33);
-            break;
-        case 'r':
-            scale = 1.0;
+            ClearColor.g += 0.1;
             break;
         case 'd':
-            translate = !!(di++ % 4);
+            ClearColor.b += 0.1;
+            break;
+        case 'w':
+            ClearColor = v4(.1, .1, .1, 1.0);
+            break;
+        case 'j':
+            TriangleColor.r -= 0.1;
+            break;
+        case 'k':
+            TriangleColor.g -= 0.1;
+            break;
+        case 'l':
+            TriangleColor.b -= 0.1;
+            break;
+        case 'i':
+            TriangleColor = v4(1.0, 1.0, 1.0, 1.0);
             break;
         default:
             break;
-
         }
-        lastKey = getKey();
-        float xm = x * xInv;
-        //rotate(&points[0], xm);
-        //rotate(&points[1], xm);
-        //rotate(&points[2], xm);
-        glClear(GL_COLOR_BUFFER_BIT);
-        int i = ctr % cast(int) points.length;
+
+        if (x-- == 0)
         {
-            glBegin(GL_TRIANGLES);
-            if (showTransformed)
+            x = xInit;
+            glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
+            glClear(GL_COLOR_BUFFER_BIT);
+            //float XYratio = ctx.TargetDimensions.x / ctx.TargetDimensions.y;
+            with(beginRender(ctx.TargetDimensions, ctx.window))
             {
-                {
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(-_p.y, _p.x);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
+                ///Rect(v2(0,0), v2(20,20), TriangleColor*0.1);
+                //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
+                //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
+                //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
+                drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), 17);
+//                drawChessBoard(thisp, v2(-0, -0), v2(1, 1), 3);
+                //Rect(v2(-1.0,-1.0).Had(v2(XYratio, 1)), v2(-0.3,-0.3), TriangleColor);
 
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(-_p.x, -_p.y);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
-
-                    foreach (ip, _p; points[i])
-                    {
-                        auto np = v2(_p.y, -_p.x);
-                        glColor3fv(colorTable[ip]);
-                        glVertex2fv(np * scale);
-                    }
-                }
             }
-            foreach (ip, _p; points[i])
-            {
-                glColor3fv(colorTable[ip]);
-                glVertex3fv(
-                    _p - (translate ? centeredTriangle[di % centeredTriangle.length] : v3(0,
-                    0, 0)));
-            }
-            glEnd();
+            //endRender(renderer, ctx.window);
         }
-        SDL_GL_SwapWindow(ctx.window);
+
+        lastKey = GetKey();
     }
 
     scope (exit)
         ShutdownOpenGL(ctx);
-    auto slv = glGetString(GL_SHADING_LANGUAGE_VERSION);
-    writeln(slv[0 .. strlen(slv)]);
+
     return 0;
+}
+
+void renderTriangle(v4 c, float scale = 1.0)
+{
+    glBegin(GL_TRIANGLES);
+    glColor4f(c.r, c.g, c.b, 1.0);
+    glVertex3fv(v3(-1.0, -1.0, 0.0) * scale);
+    glVertex3fv(v3(1.0, -1.0, 0.0) * scale);
+    glVertex3fv(v3(0.0, 1.0, 0.0) * scale);
+    glEnd();
+
 }
