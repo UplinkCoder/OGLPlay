@@ -2,7 +2,7 @@ module render;
 import vector;
 import derelict.opengl3.gl;
 import derelict.sdl2.sdl;
-
+nothrow :
 struct renderer
 {
     v2 TargetDimensions;

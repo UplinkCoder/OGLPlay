@@ -1,5 +1,5 @@
 import std.math;
-
+nothrow :
 struct rectangle2
 {
     v2 MinCorner; /// Left-Bottom
@@ -23,6 +23,7 @@ float d2r(float x)
 }
 
 static immutable opBinaryVectorMixin = q{
+nothrow :
     VT Had(VT)(const VT rhs)
     {
         typeof(this) result;
@@ -78,6 +79,7 @@ static immutable opBinaryVectorMixin = q{
 
 struct v2
 {
+nothrow:
     union
     {
         struct

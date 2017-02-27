@@ -39,10 +39,22 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, ubyte 
         auto yoffset = v2(0, sideHeight * i);
         foreach(j;0 .. count)
         {
+            if (i == 0 && j == 0 && IsPressed[ButtonEnum.LB])
+            {
+                white = v4(1,0,0,1);
+            }
+            else if (i == 0 && j == 2 && IsPressed[ButtonEnum.RB])
+            {
+                white = v4(0,1,0,1);
+            }
+            else
+            {
+                white = v4(0.7,0.7,0.7,1); 
+            }
             isBlack = !isBlack;
             auto xoffset = v2(sideWidth * j, 0);
- //           white = white * (1 / (j+0.0000001));
-//            black = black * (1 / (j+0.0000001));
+           // white = white * (1 / (j+0.0000001));
+         //   black = black * (1 / (j+0.0000001));
             r.Rect(lowerLeftCorner + xoffset + yoffset, lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, (isBlack ? black : white), rotateAxis((90/count)*i));
         }
 
@@ -165,15 +177,71 @@ void ShutdownOpenGL(init_opengl_result gl)
     DerelictSDL2.unload();
 }
 
-int EventHandler(void* userdata, SDL_Event* event)
+void toggle(ref bool b)
 {
+    b = !b;
+}
+
+ButtonEnum toButtonEnum(SDL_Keycode k)
+{
+    switch(k)
+    {
+        case SDLK_w:
+            return ButtonEnum.W;
+        case SDLK_a:
+            return ButtonEnum.A;
+        case SDLK_s:
+            return ButtonEnum.S;
+        case SDLK_d:
+            return ButtonEnum.D;
+
+        case SDLK_q:
+            return ButtonEnum.Q;
+        case SDLK_UP:
+            return ButtonEnum.Up;
+        case SDLK_DOWN:
+            return ButtonEnum.Down;
+        case SDLK_LEFT:
+            return ButtonEnum.Left;
+        case SDLK_RIGHT:
+            return ButtonEnum.Reght;
+
+        default : 
+            return ButtonEnum.UnhandledKey;
+    }
+}
+
+ButtonEnum MouseButtonToButtonEnum(Uint8 MouseButton)
+{
+    switch(MouseButton)
+    {
+        case 1 : return ButtonEnum.LB;
+        case 3 : return ButtonEnum.RB;
+        default : return ButtonEnum.UnhandledKey;
+    }
+}
+import std.exception;
+
+extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
+{
+    try
+    {
     switch(event.type)
     {
+          //  writeln(event.type);
         case SDL_EventType.SDL_KEYDOWN, SDL_EventType.SDL_KEYUP :
-         //   HandleKeys();
-        {}
+            toggle(IsPressed[event.key.keysym.sym.toButtonEnum]);
+                return 0;
+        case SDL_EventType.SDL_MOUSEBUTTONDOWN, SDL_EventType.SDL_MOUSEBUTTONUP :
+            SDL_MouseButtonEvent MouseButton = event.button;
+            MouseP.x = MouseButton.x;
+            MouseP.y = winDim.y - MouseButton.y;
+            toggle(IsPressed[MouseButton.button.MouseButtonToButtonEnum]);
+                return 0;
         default : {}
     }
+
+    } catch (Exception e) {}
     return 1;
 }
 char GetKey()
@@ -222,9 +290,42 @@ v2[2] rotateAxis(float d_angle)
     return Result;
 }
 
+enum ButtonEnum
+{
+    UnhandledKey,
+
+    W,
+    A,
+    S,
+    D,
+
+    Q,
+
+    LB,
+    RB,
+
+    Up,
+    Down,
+    Left,
+    Reght,
+
+    Plus,
+    Minus,
+
+}
+/*struct InputState
+{
+    bool isPressed[ButtonEnum.max];
+}*/
+
+bool IsPressed[ButtonEnum.max];
+v2 MouseP;
+v2 winDim;
+
 int main()
 {
     auto ctx = InitOpenGL();
+    SDL_AddEventWatch(&EventHandler, null);
     enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
@@ -259,7 +360,8 @@ int main()
     while (lastKey != 'q')
     {
         float xm = x * xInv;
-
+        if (IsPressed[ButtonEnum.Q])
+            lastKey = 'q';
         switch (lastKey)
         {
         case 'a':
@@ -292,6 +394,7 @@ int main()
 
         if (x-- == 0)
         {
+            SDL_PumpEvents();
             x = xInit;
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -302,7 +405,7 @@ int main()
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
-                drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), 17);
+                drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), 3);
 //                drawChessBoard(thisp, v2(-0, -0), v2(1, 1), 3);
                 //Rect(v2(-1.0,-1.0).Had(v2(XYratio, 1)), v2(-0.3,-0.3), TriangleColor);
 
@@ -310,7 +413,7 @@ int main()
             //endRender(renderer, ctx.window);
         }
 
-        lastKey = GetKey();
+        lastKey = IsPressed[ButtonEnum.Q] ? 'q' : ' ';// GetKey();
     }
 
     scope (exit)
