@@ -216,7 +216,7 @@ void toggle(ref bool b)
     b = !b;
 }
 
-ButtonEnum toButtonEnum(SDL_Keycode k)
+ButtonEnum toButtonEnum(SDL_Keycode k) nothrow
 {
     switch(k)
     {
@@ -248,7 +248,7 @@ ButtonEnum toButtonEnum(SDL_Keycode k)
     }
 }
 
-ButtonEnum MouseButtonToButtonEnum(Uint8 MouseButton)
+ButtonEnum MouseButtonToButtonEnum(Uint8 MouseButton) nothrow
 {
     switch(MouseButton)
     {
@@ -263,12 +263,12 @@ struct Button
 {
     uint count;
 
-    @property bool IsPressed()
+    @property bool IsPressed() nothrow
     {
         return (count & (1 << 31)) != 0;
     }
 
-    @property void IsPressed(uint v)
+    @property void IsPressed(uint v) nothrow
     {
         if (v)
         { 
@@ -291,7 +291,7 @@ struct Button
         count &= (1 << 31) | (1 << 30);
     }
 }
-void CountKeyEvent(ButtonEnum b, bool isDown)
+void CountKeyEvent(ButtonEnum b, bool isDown) nothrow
 {
     auto Button = &buttons[b];
     if (Button.IsPressed != isDown) Button.count++;
@@ -302,8 +302,7 @@ void CountKeyEvent(ButtonEnum b, bool isDown)
 extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
 {
     auto eventType = event.type;
-try{
-            writeln(event.type);
+
     switch(eventType)
     {
         case SDL_KEYDOWN, SDL_KEYUP :
@@ -335,7 +334,7 @@ try{
                 return 0;
         default : {}
     }
-} catch (Exception e) { } // TODO log exception ?
+//} catch (Exception e) { } // TODO log exception ?
     return 1;
 }
 
