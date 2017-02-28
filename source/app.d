@@ -14,7 +14,6 @@ import core.thread;
 
 alias sleep = Thread.sleep;
 
-v2 displayDim;
 v2 mySquare;
 uint boardDim;
 
@@ -42,7 +41,7 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
     float height = upperRightCorner.y - lowerLeftCorner.y;
     //height *= displayDim.y;
 
-    float ratio = displayDim.x / displayDim.y;
+    float ratio = r.TargetDimensions.x / r.TargetDimensions.y;
 
     float sideWidth = max(width, height) / ratio / count;
     bool isBlack = true;
@@ -92,8 +91,8 @@ void toggleFullscreen(init_opengl_result *ogl)
         Dim = ogl.WindowDimensions;
         SDL_SetWindowFullscreen(ogl.window, 0);
     }
-
-    //glViewport(0, 0, Dim.xi, Dim.yi);
+    writeln(Dim);
+    glViewport(0, 0, Dim.xi, Dim.yi);
     toggle(ogl.Fullscreen);
 }
 
@@ -127,8 +126,8 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     }
     else
     {
-        winDim = displayDim = v2(currentDisplayMode.w, currentDisplayMode.h);
-        winDim = winDim * 0.5;
+        auto dim = Result.DisplayDimensions = v2(currentDisplayMode.w, currentDisplayMode.h);
+        winDim = dim * 0.5;
     }
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
@@ -182,8 +181,8 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
     mat4x4 proj = mat4x4(
         [
-           [2/displayDim.x,0,0,-1f],
-            [0, 2/displayDim.y,0,-1f],
+           [2/winDim.x,0,0,-1f],
+            [0, 2/winDim.y,0,-1f],
             [0,0,1f,0],
             [0,0,0,1f]
 
@@ -194,7 +193,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     //glOrtho(0, 0, 0, 0, 0, 0);
     Result.WindowDimensions = winDim;
 
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(1);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
     DerelictGL3.reload();
