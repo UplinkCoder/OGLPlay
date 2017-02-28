@@ -22,9 +22,11 @@ char lastKey;
 
 struct init_opengl_result
 {
-    v2 TargetDimensions;
+    v2 WindowDimensions;
+    v2 DisplayDimensions;
     SDL_Window* window;
     SDL_GLContext context;
+    bool Fullscreen;
 
     bool opCast(T : bool)()
     {
@@ -55,7 +57,7 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
                 white = v4(1,0,0,1);
                 black = v4(0,1,0,1);
             }
-            /*else if (i == 0 && j == 2 && IsPressed[ButtonEnum.RB])
+            /*else if (i == 0 && j == 2 && buttons[ButtonEnum.RB].IsPressed)
             {
                 white = v4(0,1,0,1);
             }
@@ -74,6 +76,25 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
         }
 
     }
+}
+
+void toggleFullscreen(init_opengl_result *ogl)
+{
+    writeln("toggleFullscreen");
+    v2 Dim;    
+    if (!ogl.Fullscreen)
+    {
+        Dim = ogl.DisplayDimensions;
+        SDL_SetWindowFullscreen(ogl.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+    }
+    else
+    {
+        Dim = ogl.WindowDimensions;
+        SDL_SetWindowFullscreen(ogl.window, 0);
+    }
+
+    //glViewport(0, 0, Dim.xi, Dim.yi);
+    toggle(ogl.Fullscreen);
 }
 
 init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
@@ -108,7 +129,6 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     {
         winDim = displayDim = v2(currentDisplayMode.w, currentDisplayMode.h);
         winDim = winDim * 0.5;
-        //window_flags |= SDL_WINDOW_FULLSCREEN;
     }
 
     Result.window = SDL_CreateWindow("Hello Triangle", SDL_WINDOWPOS_CENTERED,
@@ -125,7 +145,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
- //   glViewport(0, 0, winDim.xi, winDim.yi);
+    glViewport(0, 0, winDim.xi, winDim.yi);
         
    // glLoadIdentity();
 
@@ -172,7 +192,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
 //    glLoadMatrixf(proj);
     //glOrtho(0, 0, 0, 0, 0, 0);
-    Result.TargetDimensions = winDim;
+    Result.WindowDimensions = winDim;
 
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
@@ -210,6 +230,9 @@ ButtonEnum toButtonEnum(SDL_Keycode k)
         case SDLK_d:
             return ButtonEnum.D;
 
+        case SDLK_f:
+            return ButtonEnum.F;
+
         case SDLK_q:
             return ButtonEnum.Q;
         case SDLK_UP:
@@ -237,61 +260,86 @@ ButtonEnum MouseButtonToButtonEnum(Uint8 MouseButton)
 }
 import std.exception;
 
+struct Button
+{
+    uint count;
+
+    @property bool IsPressed()
+    {
+        return (count & (1 << 31)) != 0;
+    }
+
+    @property void IsPressed(uint v)
+    {
+        if (v)
+        { 
+            count |= (1 << 31);
+        }
+        else
+        {
+            count &= ~(1 << 31);
+        }
+    }
+/*
+    uint WasPressed()
+    {
+        return count & ~(1 << 31);
+    }
+*/
+    bool wasPressed;
+    void ClearCount()
+    {
+        count &= (1 << 31) | (1 << 30);
+    }
+}
+void CountKeyEvent(ButtonEnum b, bool isDown)
+{
+    auto Button = &buttons[b];
+    if (Button.IsPressed != isDown) Button.count++;
+    Button.IsPressed = isDown;
+    assert(Button.IsPressed == isDown);
+} 
+
 extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
 {
-    try
+    auto eventType = event.type;
+try{
+            writeln(event.type);
+    switch(eventType)
     {
-    switch(event.type)
-    {
-          //  writeln(event.type);
         case SDL_KEYDOWN, SDL_KEYUP :
-            toggle(IsPressed[event.key.keysym.sym.toButtonEnum]);
-            if (event.type == SDL_KEYDOWN) lastKey = cast(char) event.key.keysym.sym;
-            if (event.type == SDL_KEYUP) lastKey = ' ';
+            auto KeyEvent = event.key;
+            auto KeySym = KeyEvent.keysym.sym;
+            buttons[KeySym.toButtonEnum].wasPressed = false;
+           
+            if(KeySym.toButtonEnum == ButtonEnum.Q)
+            {
+              SDL_Quit();
+            }
+  
+            if (KeyEvent.state == SDL_RELEASED)
+            {
+                buttons[KeySym.toButtonEnum].wasPressed = true;
+            }
+            else if (KeyEvent.repeat != 0)
+            {
+                buttons[KeySym.toButtonEnum].wasPressed = true;
+            }
+
+      //      CountKeyEvent(Keysym.toButtonEnum, eventType == SDL_KEYDOWN);
                 return 0;
         case SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP :
             SDL_MouseButtonEvent MouseButton = event.button;
             MouseP.x = MouseButton.x;
             MouseP.y = winDim.y - MouseButton.y;
-            toggle(IsPressed[MouseButton.button.MouseButtonToButtonEnum]);
+            CountKeyEvent(MouseButton.button.MouseButtonToButtonEnum, eventType == SDL_MOUSEBUTTONDOWN);
                 return 0;
         default : {}
     }
-
-    } catch (Exception e) {}
+} catch (Exception e) { } // TODO log exception ?
     return 1;
 }
-char GetKey()
-{
-    SDL_Event e;
 
-    while (SDL_PollEvent(&e) != 0)
-    {
-        if (e.type == SDL_WINDOWEVENT)
-        {
-            //glViewport(0, 0, e.window.data1, e.window.data2);
-            writeln("windowEventType:", cast(SDL_WindowEventID)e.window.event);
-        }
-        writeln("Got event Type: ", e.type.to!string);
-        if (e.type == SDL_MOUSEBUTTONUP)
-        {
-//            Windows
-            writeln("x.y: ", v2(e.button.x, e.button.y));
-        }
-        // Quit if the user closes the window or presses Q
-        if (e.type == SDL_QUIT)
-        {
-            return 'q';
-        }
-        else if (e.type == SDL_KEYDOWN)
-        {
-               return cast(char) e.key.keysym.sym;
-
-        }
-    }
-    return '\0';
-
-}
 
 v2[2] rotateAxis(float d_angle)
 {
@@ -316,6 +364,7 @@ enum ButtonEnum
     S,
     D,
 
+    F,
     Q,
 
     LB,
@@ -332,10 +381,19 @@ enum ButtonEnum
 }
 /*struct InputState
 {
-    bool isPressed[ButtonEnum.max];
+    bool buttons[ButtonEnum.max];
 }*/
 
-bool IsPressed[ButtonEnum.max];
+Button[ButtonEnum.max] buttons;
+
+void clearButtons()
+{
+    foreach(ref b; buttons)
+    {
+        b.wasPressed = false;
+    }
+}
+
 v2 MouseP;
 v2 winDim;
 
@@ -387,26 +445,32 @@ int main()
     int di;
             
     boardDim = 3;
-    while (!IsPressed[ButtonEnum.Q])
+    while (!buttons[ButtonEnum.Q].wasPressed)
     {
 		SDL_PumpEvents();
     
-        if (IsPressed[ButtonEnum.Up])
+        if (buttons[ButtonEnum.Up].wasPressed)
         {
             mySquare.y += 1;
         }
-        else if (IsPressed[ButtonEnum.Down])
+        else if (buttons[ButtonEnum.Down].wasPressed)
         {
             mySquare.y -= 1;
         }
-        else if (IsPressed[ButtonEnum.Left])
+        else if (buttons[ButtonEnum.Left].wasPressed)
         {
             mySquare.x -= 1;
         }
-        else if (IsPressed[ButtonEnum.Right])
+        else if (buttons[ButtonEnum.Right].wasPressed)
         {
             mySquare.x += 1;
         }
+        else if (buttons[ButtonEnum.F].wasPressed)
+        {
+            toggleFullscreen(&ctx);
+        }
+
+
         mySquare.x = absMod(mySquare.xi, boardDim);
         mySquare.y = absMod(mySquare.yi, boardDim);
 
@@ -437,18 +501,19 @@ int main()
         case 'i':
             TriangleColor = v4(1.0, 1.0, 1.0, 1.0);
             break;
+        case 'f': 
+           toggleFullscreen(&ctx);
+           break;
         default:
             break;
         }
 
-    //    if (x-- == 0)
-        {
-            sleep(110.msecs);
-            x = xInit;
+            clearButtons();
+            sleep(15.msecs);
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
             glClear(GL_COLOR_BUFFER_BIT);
-            //float XYratio = ctx.TargetDimensions.x / ctx.TargetDimensions.y;
-            with(beginRender(ctx.TargetDimensions, ctx.window))
+            //float XYratio = ctx.WindowDimensions.x / ctx.WindowDimensions.y;
+            with(beginRender(ctx.WindowDimensions, ctx.window))
             {
                 ///Rect(v2(0,0), v2(20,20), TriangleColor*0.1);
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
@@ -456,13 +521,11 @@ int main()
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
                 drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), boardDim);
 //                drawChessBoard(thisp, v2(-0, -0), v2(1, 1), 3);
-                //Rect(v2(-1.0,-1.0).Had(v2(XYratio, 1)), v2(-0.3,-0.3), TriangleColor);
 
             }
             //endRender(renderer, ctx.window);
         }
 
-    }
 
     scope (exit)
         ShutdownOpenGL(ctx);
