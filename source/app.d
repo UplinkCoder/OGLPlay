@@ -341,10 +341,11 @@ v2 winDim;
 
 uint absMod(int v, int modBy)
 {
+  int mod = v % modBy;
   if (v<0) 
-    return modBy + v;
+    return modBy + mod;
   else
-    return v % modBy;
+    return mod;
 }
 
 static assert(absMod(-1, 3) == 2);
@@ -352,7 +353,7 @@ static assert(absMod(-1, 3) == 2);
 int main()
 {
     auto ctx = InitOpenGL();
-    SDL_AddEventWatch(&EventHandler, null);
+    SDL_SetEventFilter(&EventHandler, null);
     enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
@@ -384,9 +385,12 @@ int main()
     float scale = 1.0;
     int ctr;
     int di;
+            
     boardDim = 3;
     while (!IsPressed[ButtonEnum.Q])
     {
+		SDL_PumpEvents();
+    
         if (IsPressed[ButtonEnum.Up])
         {
             mySquare.y += 1;
@@ -394,7 +398,6 @@ int main()
         else if (IsPressed[ButtonEnum.Down])
         {
             mySquare.y -= 1;
-
         }
         else if (IsPressed[ButtonEnum.Left])
         {
@@ -438,10 +441,9 @@ int main()
             break;
         }
 
-        if (x-- == 0)
+    //    if (x-- == 0)
         {
             sleep(110.msecs);
-            SDL_PumpEvents();
             x = xInit;
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
             glClear(GL_COLOR_BUFFER_BIT);
