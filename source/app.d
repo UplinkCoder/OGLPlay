@@ -244,12 +244,12 @@ extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
     switch(event.type)
     {
           //  writeln(event.type);
-        case SDL_EventType.SDL_KEYDOWN, SDL_EventType.SDL_KEYUP :
+        case SDL_KEYDOWN, SDL_KEYUP :
             toggle(IsPressed[event.key.keysym.sym.toButtonEnum]);
             if (event.type == SDL_KEYDOWN) lastKey = cast(char) event.key.keysym.sym;
             if (event.type == SDL_KEYUP) lastKey = ' ';
                 return 0;
-        case SDL_EventType.SDL_MOUSEBUTTONDOWN, SDL_EventType.SDL_MOUSEBUTTONUP :
+        case SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP :
             SDL_MouseButtonEvent MouseButton = event.button;
             MouseP.x = MouseButton.x;
             MouseP.y = winDim.y - MouseButton.y;
@@ -267,13 +267,13 @@ char GetKey()
 
     while (SDL_PollEvent(&e) != 0)
     {
-        if (e.type == SDL_EventType.SDL_WINDOWEVENT)
+        if (e.type == SDL_WINDOWEVENT)
         {
             //glViewport(0, 0, e.window.data1, e.window.data2);
             writeln("windowEventType:", cast(SDL_WindowEventID)e.window.event);
         }
         writeln("Got event Type: ", e.type.to!string);
-        if (e.type == SDL_EventType.SDL_MOUSEBUTTONUP)
+        if (e.type == SDL_MOUSEBUTTONUP)
         {
 //            Windows
             writeln("x.y: ", v2(e.button.x, e.button.y));
