@@ -77,21 +77,34 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
     }
 }
 
+float Ratio0(float _this, float overThat)
+{
+  float result = 0;
+
+  if (overThat != 0)
+  {
+    result = _this / overThat;
+  }
+
+  return result;
+}
+
 void drawCircle(renderer* r, v2 Offset = v2(0, 0))
 {
     import std.math;
     float ratio = 1 / (r.TargetDimensions.x / r.TargetDimensions.y);
     v2 ratioV2 = v2(ratio, 1);
     //Offset = v2(-0.5*ratio, -0.5);
-    enum radius = 0.05;
+    enum radius = 0.01;
     Offset.Had(ratioV2);
-    enum points = 32;
+    enum points = 64*16;
     enum Tau32 = cast(float) (PI * 2);
     auto AngleStep = Tau32 / points;
     foreach(i;0 .. points) 
     {
-       auto lowerCorner = v2(cos(AngleStep*i)*ratio, sin(AngleStep*i))*0.5;
-       r.Rect(lowerCorner + Offset, lowerCorner + Offset + v2(radius*ratio, radius), v4(0,1,1,1));
+       auto pr = Ratio0(i, points)*2;
+       auto lowerCorner = v2(cos(AngleStep*i), sin(AngleStep*i)).Had(ratioV2)*0.4; //*pr;
+       r.Rect(lowerCorner + Offset, lowerCorner + Offset + v2(radius*ratio, radius), v4(0,1,1,0)*pr);
     }
 }
 

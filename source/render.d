@@ -7,7 +7,7 @@ struct renderer
 {
     v2 TargetDimensions;
     SDL_Window* window;
-    render_element_base[1024][3] ElementPlanes;
+    render_element_base[8192][3] ElementPlanes;
     uint[typeof(ElementPlanes).length] ElementCount;
     void Rect(v2 A, v2 B, v4 Color, v2[2] Axis = [v2(1, 0), v2(0, 1)], uint plane = 0)
     {
