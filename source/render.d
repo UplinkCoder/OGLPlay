@@ -9,9 +9,9 @@ struct renderer
     SDL_Window* window;
     render_element_base[1024][3] ElementPlanes;
     uint[typeof(ElementPlanes).length] ElementCount;
-    void Rect(v2 A, v2 B, v4 Color, v2[2] Axis = [v2(1, 0), v2(0, 1)])
+    void Rect(v2 A, v2 B, v4 Color, v2[2] Axis = [v2(1, 0), v2(0, 1)], uint plane = 0)
     {
-        Rect_(&this, A, B, Color, Axis);
+        Rect_(&this, A, B, Color, Axis, plane);
     }
 
     renderer* thisp()
@@ -45,7 +45,6 @@ void endRender(renderer* Renderer, SDL_Window* window)
         foreach (EI; 0 .. Renderer.ElementCount[PI])
         {
             auto Element = Renderer.ElementPlanes[PI][EI];
-            import std.stdio;
             render_rectangle(Element.A, Element.B, Element.Color);
         }
     glEnd();

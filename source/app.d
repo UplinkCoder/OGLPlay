@@ -77,6 +77,24 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
     }
 }
 
+void drawCircle(renderer* r, v2 Offset = v2(0, 0))
+{
+    import std.math;
+    float ratio = 1 / (r.TargetDimensions.x / r.TargetDimensions.y);
+    v2 ratioV2 = v2(ratio, 1);
+    //Offset = v2(-0.5*ratio, -0.5);
+    enum radius = 0.05;
+    Offset.Had(ratioV2);
+    enum points = 32;
+    enum Tau32 = cast(float) (PI * 2);
+    auto AngleStep = Tau32 / points;
+    foreach(i;0 .. points) 
+    {
+       auto lowerCorner = v2(cos(AngleStep*i)*ratio, sin(AngleStep*i))*0.5;
+       r.Rect(lowerCorner + Offset, lowerCorner + Offset + v2(radius*ratio, radius), v4(0,1,1,1));
+    }
+}
+
 void toggleFullscreen(init_opengl_result *ogl)
 {
     writeln("toggleFullscreen");
@@ -201,14 +219,22 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     return Result;
 }
 
-void ShutdownOpenGL(init_opengl_result gl)
+void ShutdownOpenGL(init_opengl_result* gl) nothrow
 {
     // Deinitialize SDL at exit.
+    if (gl.window && gl.context)
+    {
     SDL_GL_DeleteContext(gl.context);
-    SDL_Quit();
-
-    DerelictGL3.unload();
-    DerelictSDL2.unload();
+    SDL_DestroyWindow(gl.window);
+    gl.window = null;
+    //SDL_Quit();
+    
+    try {
+        writeln("calledShutdownOpenGL");
+     //   DerelictGL3.unload();
+    //DerelictSDL2.unload();
+    } catch (Exception e) {}
+    }
 }
 
 void toggle(ref bool b)
@@ -312,7 +338,8 @@ extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
            
             if(KeySym.toButtonEnum == ButtonEnum.Q)
             {
-              SDL_Quit();
+                auto ctx = cast(init_opengl_result*)userdata; 
+                if (ctx.window) ShutdownOpenGL(ctx);
             }
   
             if (KeyEvent.state == SDL_RELEASED)
@@ -409,7 +436,7 @@ static assert(absMod(-1, 3) == 2);
 int main()
 {
     auto ctx = InitOpenGL();
-    SDL_SetEventFilter(&EventHandler, null);
+    SDL_AddEventWatch(&EventHandler, &ctx);
     enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
@@ -507,7 +534,9 @@ int main()
         }
 
             clearButtons();
-            sleep(15.msecs);
+           // sleep(15.msecs);
+        if (ctx.context)
+        {
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
             glClear(GL_COLOR_BUFFER_BIT);
             //float XYratio = ctx.WindowDimensions.x / ctx.WindowDimensions.y;
@@ -518,15 +547,17 @@ int main()
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
                 drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), boardDim);
+                drawCircle(thisp);
 //                drawChessBoard(thisp, v2(-0, -0), v2(1, 1), 3);
 
             }
             //endRender(renderer, ctx.window);
         }
 
+    }
 
-    scope (exit)
-        ShutdownOpenGL(ctx);
+   // scope (exit)
+ //       ShutdownOpenGL(&ctx);
 
     return 0;
 }
