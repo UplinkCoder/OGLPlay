@@ -7,17 +7,17 @@ struct rectangle2
     v4 Color;
 }
 
-uint min(uint a, uint b)
+uint min(uint a, uint b) pure
 {
     return a < b ? a : b;
 }
 
-double r2d(double x)
+double r2d(double x) pure
 {
     return (x) * (180 / PI);
 }
 
-float d2r(float x)
+float d2r(float x) pure
 {
     return x * (PI / 180);
 }
@@ -87,12 +87,12 @@ nothrow:
             float x = 0, y = 0;
         }
 
-        @property uint xi() const
+        @property uint xi() const pure
         {
             return cast(uint)x;
         }
 
-        @property uint yi() const
+        @property uint yi() const pure
         {
             return cast(uint)y;
         }
@@ -107,12 +107,12 @@ nothrow:
         return &E[0];
     }
 
-    v2 perp()
+    v2 perp() const pure nothrow
     {
         return v2(-y, x);
     }
 
-    v2 mirror()
+    v2 mirror() const pure nothrow
     {
         return v2(y, x);
     }

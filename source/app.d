@@ -25,6 +25,7 @@ struct init_opengl_result
     v2 DisplayDimensions;
     SDL_Window* window;
     SDL_GLContext context;
+
     bool Fullscreen;
 
     bool opCast(T : bool)()
@@ -33,8 +34,32 @@ struct init_opengl_result
     }
 }
 import std.algorithm : min, max;
+const (float) Map01(const float value, const float min, const float max) pure
+{
+   assert(min < max);
+   assert(value >= min);
+   assert(value <= max);
 
-void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint count, v4 black = v4(0,0,0,1), v4 white = v4(1,1,1,1))
+   float result;
+
+   result = (value - min) / (max - min);
+
+    return result;
+}
+
+static assert(Map01(0.5,0.5,1) == 0.0f);
+static assert(Map01(1,0.5,1) == 1.0f);
+static assert(Map01(0.75,0.5,1) == 0.5);
+
+v2 arm(float angle)
+{
+    import std.math;
+    return v2(cos(angle), sin(angle));
+}
+
+pragma(msg, arm(2.0));
+
+void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint count, v2* highlighted = null, v4 black = v4(0,0,0,1), v4 white = v4(1,1,1,1)) pure
 {
     float width = upperRightCorner.x - lowerLeftCorner.x;
     //width *= displayDim.x;
@@ -51,7 +76,7 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
         auto yoffset = v2(0, sideHeight * i);
         foreach(j;0 .. count)
         {
-            if (mySquare.xi == j && mySquare.yi == i)
+            if (highlighted && absMod(highlighted.xi, count) == j && absMod(highlighted.yi, count) == i)
             {
                 white = v4(1,0,0,1);
                 black = v4(0,1,0,1);
@@ -88,16 +113,16 @@ float Ratio0(float _this, float overThat)
 
   return result;
 }
-
-void drawCircle(renderer* r, v2 Offset = v2(0, 0))
+bool paused;
+void drawCircle(renderer* r, float rotation = 1.0, v2 Offset = v2(0, 0))
 {
     import std.math;
     float ratio = 1 / (r.TargetDimensions.x / r.TargetDimensions.y);
     v2 ratioV2 = v2(ratio, 1);
     //Offset = v2(-0.5*ratio, -0.5);
-    enum radius = 0.01;
+    enum radius = .009;
     Offset.Had(ratioV2);
-    enum points = 64*16;
+    enum points = 64*4;
     enum Tau32 = cast(float) (PI * 2);
     auto AngleStep = Tau32 / points;
     foreach(i;0 .. points) 
@@ -192,13 +217,13 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
         void transpose()
         {
             import std.algorithm : swap;
+
             swap(E[0][1],E[1][0]);
             swap(E[0][2],E[2][0]);
             swap(E[0][3],E[3][0]);
 
             swap(E[1][2],E[2][1]);
             swap(E[1][3],E[3][1]);
-            swap(E[1][2],E[2][1]);
 
             swap(E[2][3],E[3][2]);
         }
@@ -224,30 +249,27 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     //glOrtho(0, 0, 0, 0, 0, 0);
     Result.WindowDimensions = winDim;
 
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
-    DerelictGL3.reload();
+    //DerelictGL3.reload();
     writeln("finished init");
     return Result;
 }
 
 void ShutdownOpenGL(init_opengl_result* gl) nothrow
 {
+    try    { writeln("calledShutdownOpenGL"); } catch  {}
     // Deinitialize SDL at exit.
-    if (gl.window && gl.context)
-    {
     SDL_GL_DeleteContext(gl.context);
     SDL_DestroyWindow(gl.window);
-    gl.window = null;
-    //SDL_Quit();
+    SDL_Quit();
     
     try {
-        writeln("calledShutdownOpenGL");
-     //   DerelictGL3.unload();
-    //DerelictSDL2.unload();
+        DerelictGL3.unload();
+        DerelictSDL2.unload();
     } catch (Exception e) {}
-    }
+    
 }
 
 void toggle(ref bool b)
@@ -271,6 +293,8 @@ ButtonEnum toButtonEnum(SDL_Keycode k) nothrow
         case SDLK_f:
             return ButtonEnum.F;
 
+        case SDLK_p:
+            return ButtonEnum.P;
         case SDLK_q:
             return ButtonEnum.Q;
         case SDLK_UP:
@@ -347,12 +371,11 @@ extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
         case SDL_KEYDOWN, SDL_KEYUP :
             auto KeyEvent = event.key;
             auto KeySym = KeyEvent.keysym.sym;
+            auto oldButtons = buttons;
+         //   clearButtons();
             buttons[KeySym.toButtonEnum].wasPressed = false;
-           
             if(KeySym.toButtonEnum == ButtonEnum.Q)
             {
-                auto ctx = cast(init_opengl_result*)userdata; 
-                if (ctx.window) ShutdownOpenGL(ctx);
             }
   
             if (KeyEvent.state == SDL_RELEASED)
@@ -379,7 +402,7 @@ extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
 }
 
 
-v2[2] rotateAxis(float d_angle)
+v2[2] rotateAxis(float d_angle) pure
 {
     import std.math;
     
@@ -403,6 +426,7 @@ enum ButtonEnum
     D,
 
     F,
+    P,
     Q,
 
     LB,
@@ -424,7 +448,7 @@ enum ButtonEnum
 
 Button[ButtonEnum.max] buttons;
 
-void clearButtons()
+void clearButtons() nothrow
 {
     foreach(ref b; buttons)
     {
@@ -435,7 +459,7 @@ void clearButtons()
 v2 MouseP;
 v2 winDim;
 
-uint absMod(int v, int modBy)
+uint absMod(int v, int modBy) pure nothrow
 {
   int mod = v % modBy;
   if (v<0) 
@@ -486,7 +510,13 @@ int main()
     while (!buttons[ButtonEnum.Q].wasPressed)
     {
 		SDL_PumpEvents();
-    
+    import std.random;
+    if (buttons[ButtonEnum.P].wasPressed) toggle(paused);
+    if (!paused)
+    {
+        mySquare = mySquare + choice([v2(0,-1), v2(-1,0), v2(0,1), v2(1,0)]);
+    }
+/*
         if (buttons[ButtonEnum.Up].wasPressed)
         {
             mySquare.y += 1;
@@ -503,15 +533,23 @@ int main()
         {
             mySquare.x += 1;
         }
-        else if (buttons[ButtonEnum.F].wasPressed)
+        else
+*/
+if (buttons[ButtonEnum.Q].wasPressed)
+{
+    ShutdownOpenGL(&ctx);
+    import core.stdc.stdlib : exit;
+    exit(0);
+}
+ if (buttons[ButtonEnum.F].wasPressed)
         {
             toggleFullscreen(&ctx);
         }
 
-
+/*
         mySquare.x = absMod(mySquare.xi, boardDim);
         mySquare.y = absMod(mySquare.yi, boardDim);
-
+*/
         float xm = x * xInv;
         switch (lastKey)
         {
@@ -547,7 +585,7 @@ int main()
         }
 
             clearButtons();
-           // sleep(15.msecs);
+            //sleep(500.msecs);
         if (ctx.context)
         {
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
@@ -559,9 +597,10 @@ int main()
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
-                drawChessBoard(thisp, v2(-1, -1), v2(1.0, 1.0), boardDim);
-                drawCircle(thisp);
-//                drawChessBoard(thisp, v2(-0, -0), v2(1, 1), 3);
+                // drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
+
+                drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), 17, &mySquare);
+                drawCircle(thisp, 1.0);
 
             }
             //endRender(renderer, ctx.window);
