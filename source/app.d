@@ -18,6 +18,7 @@ v2 mySquare;
 uint boardDim;
 
 char lastKey;
+bool paused;
 
 struct init_opengl_result
 {
@@ -113,7 +114,7 @@ float Ratio0(float _this, float overThat)
 
   return result;
 }
-bool paused;
+
 void drawCircle(renderer* r, float rotation = 1.0, v2 Offset = v2(0, 0))
 {
     import std.math;
@@ -128,7 +129,7 @@ void drawCircle(renderer* r, float rotation = 1.0, v2 Offset = v2(0, 0))
     foreach(i;0 .. points) 
     {
        auto pr = Ratio0(i, points)*2;
-       auto lowerCorner = v2(cos(AngleStep*i), sin(AngleStep*i)).Had(ratioV2)*0.4; //*pr;
+       auto lowerCorner = arm(i*AngleStep).Had(ratioV2)*0.4; //*pr;
        r.Rect(lowerCorner + Offset, lowerCorner + Offset + v2(radius*ratio, radius), v4(0,1,1,0)*pr);
     }
 }
@@ -516,7 +517,7 @@ int main()
     {
         mySquare = mySquare + choice([v2(0,-1), v2(-1,0), v2(0,1), v2(1,0)]);
     }
-/*
+
         if (buttons[ButtonEnum.Up].wasPressed)
         {
             mySquare.y += 1;
@@ -534,7 +535,7 @@ int main()
             mySquare.x += 1;
         }
         else
-*/
+
 if (buttons[ButtonEnum.Q].wasPressed)
 {
     ShutdownOpenGL(&ctx);
@@ -585,7 +586,7 @@ if (buttons[ButtonEnum.Q].wasPressed)
         }
 
             clearButtons();
-            //sleep(500.msecs);
+            sleep(100.msecs);
         if (ctx.context)
         {
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
@@ -600,7 +601,7 @@ if (buttons[ButtonEnum.Q].wasPressed)
                 // drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
 
                 drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), 17, &mySquare);
-                drawCircle(thisp, 1.0);
+                // drawCircle(thisp, 1.0);
 
             }
             //endRender(renderer, ctx.window);
