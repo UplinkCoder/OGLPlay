@@ -6,7 +6,7 @@
 	"dependencies": {
 		"derelict-util": "~>2.0.0",
 		"derelict-gl3": "~>1.0.19",
-		"derelict-sdl2": {"path" : "../DerelictSDL2" },
+		"derelict-sdl2": ">2.0.5",
 	},
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2016, root",
