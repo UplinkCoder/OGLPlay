@@ -19,6 +19,12 @@ uint boardDim;
 
 char lastKey;
 bool paused;
+T choice(T)(T[] choices)
+{
+   import std.random;
+   auto u0n = uniform(0, choices.length);
+  return choices[u0n];
+}
 
 struct init_opengl_result
 {
@@ -511,7 +517,6 @@ int main()
     while (!buttons[ButtonEnum.Q].wasPressed)
     {
 		SDL_PumpEvents();
-    import std.random;
     if (buttons[ButtonEnum.P].wasPressed) toggle(paused);
     if (!paused)
     {
