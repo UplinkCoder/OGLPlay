@@ -17,13 +17,12 @@ alias sleep = Thread.sleep;
 v2 mySquare;
 uint boardDim;
 
-char lastKey;
 bool paused;
 T choice(T)(T[] choices)
 {
-   import std.random;
-   auto u0n = uniform(0, choices.length);
-  return choices[u0n];
+    import std.random;
+    auto u0n = uniform(0, choices.length);
+   return choices[u0n];
 }
 
 struct init_opengl_result
@@ -127,9 +126,9 @@ void drawCircle(renderer* r, float rotation = 1.0, v2 Offset = v2(0, 0))
     float ratio = 1 / (r.TargetDimensions.x / r.TargetDimensions.y);
     v2 ratioV2 = v2(ratio, 1);
     //Offset = v2(-0.5*ratio, -0.5);
-    enum radius = .009;
+    enum radius = .007;
     Offset.Had(ratioV2);
-    enum points = 64*4;
+    enum points = 1024*4;
     enum Tau32 = cast(float) (PI * 2);
     auto AngleStep = Tau32 / points;
     foreach(i;0 .. points) 
@@ -297,6 +296,15 @@ ButtonEnum toButtonEnum(SDL_Keycode k) nothrow
         case SDLK_d:
             return ButtonEnum.D;
 
+        case SDLK_i:
+            return ButtonEnum.I;
+        case SDLK_j:
+            return ButtonEnum.J;
+        case SDLK_k:
+            return ButtonEnum.K;
+        case SDLK_l:
+            return ButtonEnum.L;
+
         case SDLK_f:
             return ButtonEnum.F;
 
@@ -432,6 +440,11 @@ enum ButtonEnum
     S,
     D,
 
+    I,
+    J,
+    K,
+    L,
+
     F,
     P,
     Q,
@@ -516,82 +529,83 @@ int main()
     boardDim = 3;
     while (!buttons[ButtonEnum.Q].wasPressed)
     {
-		SDL_PumpEvents();
-    if (buttons[ButtonEnum.P].wasPressed) toggle(paused);
-    if (!paused)
-    {
-        mySquare = mySquare + choice([v2(0,-1), v2(-1,0), v2(0,1), v2(1,0)]);
-    }
+        SDL_PumpEvents();
+        if (buttons[ButtonEnum.P].wasPressed)
+            toggle(paused);
 
-        if (buttons[ButtonEnum.Up].wasPressed)
+        if (!paused)
         {
-            mySquare.y += 1;
-        }
-        else if (buttons[ButtonEnum.Down].wasPressed)
-        {
-            mySquare.y -= 1;
-        }
-        else if (buttons[ButtonEnum.Left].wasPressed)
-        {
-            mySquare.x -= 1;
-        }
-        else if (buttons[ButtonEnum.Right].wasPressed)
-        {
-            mySquare.x += 1;
-        }
-        else
-
-if (buttons[ButtonEnum.Q].wasPressed)
-{
-    ShutdownOpenGL(&ctx);
-    import core.stdc.stdlib : exit;
-    exit(0);
-}
- if (buttons[ButtonEnum.F].wasPressed)
-        {
-            toggleFullscreen(&ctx);
+            mySquare = mySquare + choice([v2(0,-1), v2(-1,0), v2(0,1), v2(1,0)]);
         }
 
-/*
+        float xm = x * xInv;
+        {
+            if (buttons[ButtonEnum.A].wasPressed)
+            {
+                ClearColor.r += 0.1;
+            }
+            if (buttons[ButtonEnum.S].wasPressed)
+            {
+                ClearColor.g += 0.1;
+            }
+            if (buttons[ButtonEnum.D].wasPressed)
+            {
+                ClearColor.b += 0.1;
+            }
+            if (buttons[ButtonEnum.W].wasPressed)
+            {
+                ClearColor = v4(.1, .1, .1, 1.0);
+            }
+            if (buttons[ButtonEnum.J].wasPressed)
+            {
+                TriangleColor.r -= 0.1;
+            }
+            if (buttons[ButtonEnum.K].wasPressed)
+            {
+                TriangleColor.g -= 0.1;
+            }
+            if (buttons[ButtonEnum.L].wasPressed)
+            {
+                TriangleColor.b -= 0.1;
+            }
+            if (buttons[ButtonEnum.I].wasPressed)
+            {
+                TriangleColor = v4(1.0, 1.0, 1.0, 1.0);
+            }
+            if (buttons[ButtonEnum.F].wasPressed)
+            {
+                toggleFullscreen(&ctx);
+            }
+            if (buttons[ButtonEnum.Up].wasPressed)
+            {
+                mySquare.y += 1;
+            }
+            else if (buttons[ButtonEnum.Down].wasPressed)
+            {
+                mySquare.y -= 1;
+            }
+            else if (buttons[ButtonEnum.Left].wasPressed)
+            {
+                mySquare.x -= 1;
+            }
+            else if (buttons[ButtonEnum.Right].wasPressed)
+            {
+                mySquare.x += 1;
+            }
+            else if (buttons[ButtonEnum.Q].wasPressed)
+            {
+                ShutdownOpenGL(&ctx);
+                import core.stdc.stdlib : exit;
+                exit(0);
+            }
+
+        }
+
         mySquare.x = absMod(mySquare.xi, boardDim);
         mySquare.y = absMod(mySquare.yi, boardDim);
-*/
-        float xm = x * xInv;
-        switch (lastKey)
-        {
-        case 'a':
-            ClearColor.r += 0.1;
-            break;
-        case 's':
-            ClearColor.g += 0.1;
-            break;
-        case 'd':
-            ClearColor.b += 0.1;
-            break;
-        case 'w':
-            ClearColor = v4(.1, .1, .1, 1.0);
-            break;
-        case 'j':
-            TriangleColor.r -= 0.1;
-            break;
-        case 'k':
-            TriangleColor.g -= 0.1;
-            break;
-        case 'l':
-            TriangleColor.b -= 0.1;
-            break;
-        case 'i':
-            TriangleColor = v4(1.0, 1.0, 1.0, 1.0);
-            break;
-        case 'f': 
-           toggleFullscreen(&ctx);
-           break;
-        default:
-            break;
-        }
+
 
             clearButtons();
-            sleep(100.msecs);
         if (ctx.context)
         {
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
@@ -603,24 +617,33 @@ if (buttons[ButtonEnum.Q].wasPressed)
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
-                // drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
+                //drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
 
-                drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), 17, &mySquare);
-                // drawCircle(thisp, 1.0);
+                //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), 17, &mySquare);
+                renderTriangle(TriangleColor);
+                drawCircle(thisp, 1.0);
 
             }
             //endRender(renderer, ctx.window);
         }
-
+            sleep(25.msecs);
     }
-
-   // scope (exit)
- //       ShutdownOpenGL(&ctx);
 
     return 0;
 }
 
+void renderPolygon(const v3[] ps, v4 c)
+{
+    glBegin(GL_POLYGON);
+    glColor4fv(c);
+    foreach(p;ps)
+        glVertex3fv(p);
+    glEnd();
+}
+
 void renderTriangle(v4 c, float scale = 1.0)
+{
+static if (false)
 {
     glBegin(GL_TRIANGLES);
     glColor4f(c.r, c.g, c.b, 1.0);
@@ -628,5 +651,15 @@ void renderTriangle(v4 c, float scale = 1.0)
     glVertex3fv(v3(1.0, -1.0, 0.0) * scale);
     glVertex3fv(v3(0.0, 1.0, 0.0) * scale);
     glEnd();
-
+}
+else
+{
+    static immutable v3[3] ps = 
+    [
+        v3(-1.0f, -1.0f, 0.0),
+        v3(1.0f, -1.0f, 0.0f),
+        v3(0.0f, 1.0f, 0.0f)
+    ];
+    renderPolygon(ps, c);
+}
 }
