@@ -16,6 +16,10 @@ alias sleep = Thread.sleep;
 
 v2 mySquare;
 uint boardDim;
+float _ratio;
+
+ulong moves;
+ulong cleared;
 
 bool paused;
 T choice(T)(T[] choices)
@@ -65,8 +69,26 @@ v2 arm(float angle)
 
 pragma(msg, arm(2.0));
 
-void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint count, v2* highlighted = null, v4 black = v4(0,0,0,1), v4 white = v4(1,1,1,1)) pure
+struct Pos { int x; int y; }
+extern(C) void* malloc(size_t size);
+extern(C) void memset(void* arr, int value, size_t size);
+bool[] g_hist = null;
+size_t g_hist_size;
+
+void drawChessBoard(renderer *r, v2 
+lowerLeftCorner, v2 upperRightCorner, uint count, v2* highlighted = null, ref bool[] history = g_hist, v4 black = v4(0,0,0,.5), v4 white = v4(1,1,1,1)) 
 {
+    if (history is null)
+    {
+        const sz = boardDim * boardDim;
+        if (history is g_hist)
+        {
+            g_hist_size = sz * bool.sizeof;
+        }
+        history = (cast(bool*)malloc(sz * bool.sizeof))[0 .. sz];
+        memset(history.ptr, 0, sz * bool.sizeof);
+    }
+
     float width = upperRightCorner.x - lowerLeftCorner.x;
     //width *= displayDim.x;
     float height = upperRightCorner.y - lowerLeftCorner.y;
@@ -76,33 +98,44 @@ void drawChessBoard(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, uint c
 
     float sideWidth = max(width, height) / ratio / count;
     bool isBlack = true;
-    foreach(i;0 .. count)
+    foreach(y;0 .. count)
     {
         float sideHeight = sideWidth * ratio;
-        auto yoffset = v2(0, sideHeight * i);
-        foreach(j;0 .. count)
+        auto yoffset = v2(0, sideHeight * y);
+        foreach(x;0 .. count)
         {
-            if (highlighted && absMod(highlighted.xi, count) == j && absMod(highlighted.yi, count) == i)
+            if (highlighted && absMod(highlighted.xi, count) == x && absMod(highlighted.yi, count) == y)
             {
                 white = v4(1,0,0,1);
                 black = v4(0,1,0,1);
+
+                if (history[y * boardDim + x] == false)
+                {
+                    cleard++;
+                }
+
+                history[y * boardDim + x] = true;
+            }
+            else if (history[y * boardDim + x])
+            {
+                white = v4(1,1,0,1);
+                black = v4(1,1,0,1);
             }
             /*else if (i == 0 && j == 2 && buttons[ButtonEnum.RB].IsPressed)
             {
                 white = v4(0,1,0,1);
             }
             */
-
             else
             {
                 white = v4(0.7,0.7,0.7,1); 
                 black = v4(0.2,0.2,0.2,1); 
             }
             isBlack = !isBlack;
-            auto xoffset = v2(sideWidth * j, 0);
+            auto xoffset = v2(sideWidth * x, 0);
            // white = white * (1 / (j+0.0000001));
          //   black = black * (1 / (j+0.0000001));
-            r.Rect(lowerLeftCorner + xoffset + yoffset, lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, (isBlack ? black : white), rotateAxis((90/count)*i));
+            r.Rect(lowerLeftCorner + xoffset + yoffset, lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, (isBlack ? black : white), rotateAxis((90/count)*y));
         }
 
     }
@@ -142,15 +175,20 @@ void drawCircle(renderer* r, float rotation = 1.0, v2 Offset = v2(0, 0))
 void toggleFullscreen(init_opengl_result *ogl)
 {
     writeln("toggleFullscreen");
-    v2 Dim;    
+    v2 Dim;
+    SDL_DisplayMode cdm;
+    auto di = SDL_GetWindowDisplayIndex(ogl.window);
+    assert(di >= 0);
+    SDL_GetCurrentDisplayMode(di, &cdm);
+    const full_dim = v2(cdm.w, cdm.h);    
     if (!ogl.Fullscreen)
     {
-        Dim = ogl.DisplayDimensions;
+        Dim = full_dim;
         SDL_SetWindowFullscreen(ogl.window, SDL_WINDOW_FULLSCREEN_DESKTOP);
     }
     else
     {
-        Dim = ogl.WindowDimensions;
+        Dim = g_winDim;
         SDL_SetWindowFullscreen(ogl.window, 0);
     }
     writeln(Dim);
@@ -184,7 +222,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     if (SDL_GetCurrentDisplayMode(0, &currentDisplayMode) < 0)
     {
         // assume that 0 is the current display;
-        writefln("minor: could not get display mode defaulting to %dx%d window", winDim.x, winDim.y);
+        writefln("minor: could not get display mode defaulting to %dx%d window",  winDim.x, winDim.y);
     }
     else
     {
@@ -206,7 +244,6 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
-    glViewport(0, 0, winDim.xi, winDim.yi);
         
    // glLoadIdentity();
 
@@ -243,7 +280,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
     mat4x4 proj = mat4x4(
         [
-           [2/winDim.x,0,0,-1f],
+            [2/winDim.x,0,0,-1f],
             [0, 2/winDim.y,0,-1f],
             [0,0,1f,0],
             [0,0,0,1f]
@@ -253,8 +290,9 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
 //    glLoadMatrixf(proj);
     //glOrtho(0, 0, 0, 0, 0, 0);
+    glViewport(0, 0, winDim.xi, winDim.yi);
     Result.WindowDimensions = winDim;
-
+    g_winDim = winDim;
     SDL_GL_SetSwapInterval(0);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
@@ -312,6 +350,9 @@ ButtonEnum toButtonEnum(SDL_Keycode k) nothrow
             return ButtonEnum.P;
         case SDLK_q:
             return ButtonEnum.Q;
+        case SDLK_r :
+            return ButtonEnum.R;
+
         case SDLK_UP:
             return ButtonEnum.Up;
         case SDLK_DOWN:
@@ -407,9 +448,22 @@ extern (C) int EventHandler(void* userdata, SDL_Event* event) nothrow
         case SDL_MOUSEBUTTONDOWN, SDL_MOUSEBUTTONUP :
             SDL_MouseButtonEvent MouseButton = event.button;
             MouseP.x = MouseButton.x;
-            MouseP.y = winDim.y - MouseButton.y;
+            MouseP.y = g_winDim.y - MouseButton.y;
             CountKeyEvent(MouseButton.button.MouseButtonToButtonEnum, eventType == SDL_MOUSEBUTTONDOWN);
                 return 0;
+
+        case SDL_WINDOWEVENT:
+        {
+            SDL_WindowEvent WindowEvent = event.window;
+            if (WindowEvent.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            {
+                auto x = WindowEvent.data1;
+                auto y = WindowEvent.data2;
+                g_winDim = v2(x, y);
+                try { writeln("Window Size Changed to: ", g_winDim); } catch (Throwable) {}
+            }
+        } break;
+
         default : {}
     }
 //} catch (Exception e) { } // TODO log exception ?
@@ -448,6 +502,7 @@ enum ButtonEnum
     F,
     P,
     Q,
+    R,
 
     LB,
     RB,
@@ -477,7 +532,7 @@ void clearButtons() nothrow
 }
 
 v2 MouseP;
-v2 winDim;
+v2 g_winDim;
 
 uint absMod(int v, int modBy) pure nothrow
 {
@@ -526,7 +581,7 @@ int main()
     int ctr;
     int di;
             
-    boardDim = 3;
+    boardDim = 95;
     while (!buttons[ButtonEnum.Q].wasPressed)
     {
         SDL_PumpEvents();
@@ -592,6 +647,10 @@ int main()
             {
                 mySquare.x += 1;
             }
+            else if (buttons[ButtonEnum.R].wasPressed)
+            {
+                memset(g_hist.ptr, 0, g_hist_size);
+            }
             else if (buttons[ButtonEnum.Q].wasPressed)
             {
                 ShutdownOpenGL(&ctx);
@@ -605,7 +664,7 @@ int main()
         mySquare.y = absMod(mySquare.yi, boardDim);
 
 
-            clearButtons();
+        clearButtons();
         if (ctx.context)
         {
             glClearColor(ClearColor.r, ClearColor.g, ClearColor.b, ClearColor.a);
@@ -613,35 +672,45 @@ int main()
             //float XYratio = ctx.WindowDimensions.x / ctx.WindowDimensions.y;
             with(beginRender(ctx.WindowDimensions, ctx.window))
             {
+                _ratio =  TargetDimensions.y / TargetDimensions.x; 
                 ///Rect(v2(0,0), v2(20,20), TriangleColor*0.1);
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
                 //drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
 
-                //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), 17, &mySquare);
-                renderTriangle(TriangleColor);
-                drawCircle(thisp, 1.0);
+                drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
+                //renderTriangle(TriangleColor);
+                drawDiamant(TriangleColor);
+                //drawCircle(thisp, 1.0);
 
             }
             //endRender(renderer, ctx.window);
+            sleep(4.msecs);
         }
-            sleep(25.msecs);
     }
 
     return 0;
 }
 
-void renderPolygon(const v3[] ps, v4 c)
+void renderPolygon(const v3[] ps, v4 c, float scale = 1.0f)
 {
     glBegin(GL_POLYGON);
     glColor4fv(c);
-    foreach(p;ps)
-        glVertex3fv(p);
+    if (scale == 1.0f)
+    {
+        foreach(p;ps)
+            glVertex3fv(p);
+    }
+    else
+    {
+        foreach(p;ps)
+            glVertex3fv((cast()p) * scale);
+    }
     glEnd();
 }
 
-void renderTriangle(v4 c, float scale = 1.0)
+void renderTriangle(v4 c, float scale = 1.0f)
 {
 static if (false)
 {
@@ -660,6 +729,20 @@ else
         v3(1.0f, -1.0f, 0.0f),
         v3(0.0f, 1.0f, 0.0f)
     ];
-    renderPolygon(ps, c);
+    renderPolygon(ps, c, scale);
 }
+}
+
+void drawDiamant(v4 c, float scale = 1.0f)
+{
+    auto ratio = v3(_ratio, 1 , 1);
+    immutable v3[4] ps = 
+    [
+        v3(1f, 0f, 0f).Had(ratio),
+        v3(0, -1f, 0f).Had(ratio),
+        v3(-1, 0f, 0f).Had(ratio),
+        v3(0,  1f, 0f).Had(ratio)
+    ];
+
+    renderPolygon(ps, c, scale);
 }
