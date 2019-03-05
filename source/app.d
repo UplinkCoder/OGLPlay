@@ -11,6 +11,7 @@ import std.datetime : Duration;
 import std.system;
 import std.process;
 import core.thread;
+import std.file;
 
 alias sleep = Thread.sleep;
 
@@ -111,7 +112,7 @@ lowerLeftCorner, v2 upperRightCorner, uint count, v2* highlighted = null, ref bo
 
                 if (history[y * boardDim + x] == false)
                 {
-                    cleard++;
+                    cleared++;
                 }
 
                 history[y * boardDim + x] = true;
@@ -293,7 +294,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
     glViewport(0, 0, winDim.xi, winDim.yi);
     Result.WindowDimensions = winDim;
     g_winDim = winDim;
-    SDL_GL_SetSwapInterval(0);
+    SDL_GL_SetSwapInterval(1);
     if (!Result.context)
         throw new Error("Failed to create GL context: " ~ to!string(SDL_GetError()));
     //DerelictGL3.reload();
@@ -352,6 +353,8 @@ ButtonEnum toButtonEnum(SDL_Keycode k) nothrow
             return ButtonEnum.Q;
         case SDLK_r :
             return ButtonEnum.R;
+		case SDLK_o :
+			return ButtonEnum.O;
 
         case SDLK_UP:
             return ButtonEnum.Up;
@@ -377,6 +380,17 @@ ButtonEnum MouseButtonToButtonEnum(Uint8 MouseButton) nothrow
     }
 }
 import std.exception;
+
+
+string StructToString(S)(S _struct)
+{
+	string result;
+	foreach(i, e;_struct.tupleof)
+	{
+		result ~= __traits(identifier, _struct.tupleof[i]) ~ ": " ~to!string(e) ~"\n";
+ 	}
+	return result;
+}
 
 struct Button
 {
@@ -503,6 +517,7 @@ enum ButtonEnum
     P,
     Q,
     R,
+	O,
 
     LB,
     RB,
@@ -547,8 +562,14 @@ static assert(absMod(-1, 3) == 2);
 
 int main()
 {
+
+
     auto ctx = InitOpenGL();
     SDL_AddEventWatch(&EventHandler, &ctx);
+
+	auto fHeader = *cast(BMPHeader*) &font_8x8[0];
+	writeln("Font8x8 Header: ", fHeader.StructToString);
+
     enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
@@ -649,8 +670,13 @@ int main()
             }
             else if (buttons[ButtonEnum.R].wasPressed)
             {
-                memset(g_hist.ptr, 0, g_hist_size);
+                memset(g_hist.ptr, 0, g_hist.length * g_hist[0].sizeof);
             }
+			else if (buttons[ButtonEnum.O].wasPressed)
+			{
+				static int bmpCounter = 0;
+				writeBMP(g_hist, bmpCounter++);
+			}
             else if (buttons[ButtonEnum.Q].wasPressed)
             {
                 ShutdownOpenGL(&ctx);
@@ -745,4 +771,88 @@ void drawDiamant(v4 c, float scale = 1.0f)
     ];
 
     renderPolygon(ps, c, scale);
+}
+
+void writeBMP(bool[] data, int generation)
+{
+
+}
+
+align(1) struct BMPHeader
+{
+	enum BMPCompression : uint
+	{
+		BI_RGB,
+		BI_RLE8,
+		BI_RLE4,
+		BI_BITFIELDS
+	}
+
+align(1):
+	char[2] bfType;
+	uint bfSize;
+	uint bfReserved;
+	uint bfOffBits; // usually 54
+
+	uint biSize; // BITMAPINFOHEADER.sizeof (40)_
+	int biWidth;
+	int biHight;
+	ushort biPlanes;
+	ushort biBitCount;
+	BMPCompression biCompression;
+
+	uint biSizeImage;
+	// old useless crust
+	int biXPelsPerMeter;
+	int biYPelsPerMeter;
+
+	uint biClrUsed;
+	uint biClrImportant;
+}
+
+static immutable font_8x8 = import ("font8x8_rgb.bmp");
+
+// -1 representing not found
+int char_idx (char c) pure @safe nothrow @nogc
+{
+	int idx;
+
+	if (c >= '0' && c <= '9')
+	{
+		idx = 16 + (c - '0');
+	}
+	else if (c >= 'a' && c <= 'z')
+	{
+		idx = c + (33 - 'a');
+	}
+	else if (c == ' ')
+	{
+		idx = 0;
+	}
+	else if (c == '?')
+	{
+		idx = 31;
+	}
+	else
+	{
+		idx = -1;
+	}
+
+	return idx;
+}
+
+void drawText(renderer* r, string text)
+{
+	int xsize;
+	int ysize;
+
+	foreach(c;text)
+	{
+		const idx = char_idx(c);
+		// for now we are going to ignorep
+		if (!idx || idx == -1)
+		{
+
+		}
+	}
 }
