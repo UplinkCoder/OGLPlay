@@ -7,9 +7,9 @@ struct renderer
 {
     v2 TargetDimensions;
     SDL_Window* window;
-    render_element_base[8192*2][3] ElementPlanes;
+    static render_element_base[8192*2][3] ElementPlanes;
     uint[typeof(ElementPlanes).length] ElementCount;
-    void Rect(v2 A, v2 B, v4 Color, v2[2] Axis = [v2(1, 0), v2(0, 1)], uint plane = 0) pure
+    void Rect(v2 A, v2 B, v4 Color, v2[2] Axis = [v2(1, 0), v2(0, 1)], uint plane = 0)
     {
         Rect_(&this, A, B, Color, Axis, plane);
     }
@@ -30,7 +30,7 @@ renderer beginRender(v2 TargetDimensions, SDL_Window* window)
     return renderer(TargetDimensions, window);
 }
 
-void Rect_(renderer* R, v2 A, v2 B, v4 Color, v2[2] Axis, uint Plane = 0) pure
+void Rect_(renderer* R, v2 A, v2 B, v4 Color, v2[2] Axis, uint Plane = 0)
 {
     auto InvTargetDimensions = v2(1 / R.TargetDimensions.x, 1 / R.TargetDimensions.y);
     R.ElementPlanes[Plane][R.ElementCount[Plane]++] = render_element_base(

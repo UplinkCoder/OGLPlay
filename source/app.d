@@ -76,6 +76,32 @@ extern(C) void memset(void* arr, int value, size_t size);
 bool[] g_hist = null;
 size_t g_hist_size;
 
+alias Color = uint;
+
+void draw8x8(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, byte[8][8] grid)
+{
+    const float width = upperRightCorner.x - lowerLeftCorner.x;
+    const float height = upperRightCorner.y - lowerLeftCorner.y;
+
+    const float ratio = r.TargetDimensions.x / r.TargetDimensions.y;
+    const float sideWidth = max(width, height) / ratio / 8;
+    const float sideHeight = sideWidth * ratio;
+
+    foreach(y; 0 .. 8)
+    {
+        auto yoffset = v2(0, sideHeight * y);
+        foreach(x; 0 .. 8)
+        {
+            auto xoffset = v2(sideWidth * x, 0);
+            float intensity = grid[x][y] / 127f;
+            r.Rect(lowerLeftCorner + xoffset + yoffset,
+                    lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, 
+                    (intensity ? v4(1,0,1,1) * intensity: v4(1,1,1,1))
+            );            
+        }
+    }
+}
+
 void drawChessBoard(renderer *r, v2 
 lowerLeftCorner, v2 upperRightCorner, uint count, v2* highlighted = null, ref bool[] history = g_hist, v4 black = v4(0,0,0,.5), v4 white = v4(1,1,1,1)) 
 {
@@ -705,7 +731,7 @@ int main()
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
                 //drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
 
-                drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
+                //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
                 //renderTriangle(TriangleColor);
                 drawDiamant(TriangleColor);
                 //drawCircle(thisp, 1.0);
