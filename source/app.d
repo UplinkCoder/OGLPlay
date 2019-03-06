@@ -93,7 +93,7 @@ void draw8x8(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, byte[8][8] gr
         foreach(x; 0 .. 8)
         {
             auto xoffset = v2(sideWidth * x, 0);
-            float intensity = grid[x][y] / 127f;
+            float intensity = grid[x][y] > 2;
             r.Rect(lowerLeftCorner + xoffset + yoffset,
                     lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, 
                     (intensity ? v4(1,0,1,1) * intensity: v4(1,1,1,1))
@@ -729,11 +729,11 @@ int main()
                 //Rect(v2(-40,-40), v2(-20,-20), TriangleColor*0.3);
                 //Rect(v2(-0.3,-0.3), v2(0.0,0.0), TriangleColor*0.7);
                 //Rect(v2(400,200), v2(1200,600), TriangleColor*0.3);
-                //drawChessBoard(thisp, v2(-1, -1), v2(0.0, 1.0), boardDim, &mySquare);
 
                 //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
                 //renderTriangle(TriangleColor);
                 drawDiamant(TriangleColor);
+                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "H");
                 //drawCircle(thisp, 1.0);
 
             }
@@ -836,7 +836,20 @@ align(1):
 	uint biClrImportant;
 }
 
-static immutable font_8x8 = import ("font8x8_rgb.bmp");
+static immutable font_8x8 = cast(immutable ubyte[]) import ("font8x8_rgba.bmp");
+
+byte[] font_pixels;
+
+static this()
+{
+    const fHeader = *cast(BMPHeader*) &font_8x8[0];
+    font_pixels = cast(byte[]) font_8x8[fHeader.bfOffBits .. $];
+    
+    for(int pos = 0; pos < font_pixels.length; pos += 8)
+    {
+        writeln(font_pixels[pos .. pos + 8]);
+    } 
+}
 
 // -1 representing not found
 int char_idx (char c) pure @safe nothrow @nogc
@@ -867,7 +880,24 @@ int char_idx (char c) pure @safe nothrow @nogc
 	return idx;
 }
 
-void drawText(renderer* r, string text)
+
+
+
+byte[8][8] getGlyph(int idx)
+{
+   byte[8][8] result = 0;
+    if (idx && idx != -1)
+    {
+        foreach(y;0 .. 8)
+        {
+            const pos = (y * 64) + idx; 
+            result[y][0 .. 8] = font_pixels[pos .. pos + 8];
+        }
+    }
+    return result;
+}
+
+void drawText(renderer* r, v2 lowerLeftCorner, v2 upperRightCorner, string text)
 {
 	int xsize;
 	int ysize;
@@ -878,7 +908,7 @@ void drawText(renderer* r, string text)
 		// for now we are going to ignorep
 		if (!idx || idx == -1)
 		{
-
 		}
+        draw8x8(r, lowerLeftCorner, upperRightCorner, getGlyph(idx));
 	}
 }
