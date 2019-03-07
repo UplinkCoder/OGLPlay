@@ -836,7 +836,7 @@ align(1):
 	uint biClrImportant;
 }
 
-static immutable font_8x8 = cast(immutable ubyte[]) import ("font8x8_rgba.bmp");
+static immutable font_8x8 = cast(immutable ubyte[]) import ("font8x8_rgb.bmp");
 
 byte[] font_pixels;
 
