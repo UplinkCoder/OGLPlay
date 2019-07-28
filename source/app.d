@@ -330,7 +330,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
 void ShutdownOpenGL(init_opengl_result* gl) nothrow
 {
-    try    { writeln("calledShutdownOpenGL"); } catch  {}
+    try    { printf("calledShutdownOpenGL\n"); } catch  {}
     // Deinitialize SDL at exit.
     SDL_GL_DeleteContext(gl.context);
     SDL_DestroyWindow(gl.window);
@@ -588,8 +588,6 @@ static assert(absMod(-1, 3) == 2);
 
 int main()
 {
-
-
     auto ctx = InitOpenGL();
     SDL_AddEventWatch(&EventHandler, &ctx);
 
@@ -733,7 +731,7 @@ int main()
                 //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
                 //renderTriangle(TriangleColor);
                 drawDiamant(TriangleColor);
-                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "H");
+                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "1");
                 //drawCircle(thisp, 1.0);
 
             }
@@ -848,7 +846,8 @@ static this()
     for(int pos = 0; pos < font_pixels.length; pos += 8)
     {
         writeln(font_pixels[pos .. pos + 8]);
-    } 
+    }
+    print_pixels();
 }
 
 // -1 representing not found
@@ -880,19 +879,48 @@ int char_idx (char c) pure @safe nothrow @nogc
 	return idx;
 }
 
+void print_pixels()
+{
+    auto Width = 128;
+    auto Height = 32;
 
+    printf("Pixel_data.length: %d\n", font_pixels.length);
+
+    foreach_reverse(y; 0 .. Height)
+    {
+        foreach(x; 0 .. Width)
+        {
+            int c = font_pixels[3* (x + ( Width * y))];
+            printf(c == -1 ? "x" : " ");
+        }
+        printf("\n");
+    }
+
+}
 
 
 byte[8][8] getGlyph(int idx)
 {
-   byte[8][8] result = 0;
-    if (idx && idx != -1)
+    printf("GetGlyph (%d) :\n", idx);
+    if (idx == -1)
+        return typeof(return).init;
+
+    byte[8][8] result = 0;
     {
         foreach(y;0 .. 8)
         {
             const pos = (y * 64) + idx; 
             result[y][0 .. 8] = font_pixels[pos .. pos + 8];
         }
+    }
+
+    foreach(y;0 .. 8)
+    {
+        foreach(x;0 .. 8)
+        {
+           printf(result[y][x] != -1 ? "x" : " ");
+        }
+        printf("\n");
     }
     return result;
 }
@@ -909,6 +937,8 @@ void drawText(renderer* r, v2 lowerLeftCorner, v2 upperRightCorner, string text)
 		if (!idx || idx == -1)
 		{
 		}
-        draw8x8(r, lowerLeftCorner, upperRightCorner, getGlyph(idx));
+        draw8x8(r, lowerLeftCorner, upperRightCorner, getGlyph(64));
+
+
 	}
 }
