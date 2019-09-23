@@ -78,13 +78,13 @@ size_t g_hist_size;
 
 alias Color = uint;
 
-void draw8x8(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, byte[8][8] grid)
+void draw8x8(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, ubyte[8][8] grid)
 {
     const float width = upperRightCorner.x - lowerLeftCorner.x;
     const float height = upperRightCorner.y - lowerLeftCorner.y;
 
     const float ratio = r.TargetDimensions.x / r.TargetDimensions.y;
-    const float sideWidth = max(width, height) / ratio / 8;
+    const float sideWidth = max(width, height) / ratio / 64;
     const float sideHeight = sideWidth * ratio;
 
     foreach(y; 0 .. 8)
@@ -93,10 +93,10 @@ void draw8x8(renderer *r, v2 lowerLeftCorner, v2 upperRightCorner, byte[8][8] gr
         foreach(x; 0 .. 8)
         {
             auto xoffset = v2(sideWidth * x, 0);
-            float intensity = grid[x][y] > 2;
+            float intensity = grid[y][x] / 255f;
             r.Rect(lowerLeftCorner + xoffset + yoffset,
                     lowerLeftCorner + v2(sideWidth, sideHeight) + xoffset + yoffset, 
-                    (intensity ? v4(1,0,1,1) * intensity: v4(1,1,1,1))
+                    v4(0.5,0.5,0.5,1.0) * intensity
             );            
         }
     }
@@ -543,7 +543,7 @@ enum ButtonEnum
     P,
     Q,
     R,
-	O,
+    O,
 
     LB,
     RB,
@@ -597,10 +597,6 @@ int main()
     enum xInit = 265;
     enum xInv = 1.0 / xInit;
     uint[] primes = [1, 3, 5, 7];
-    uint toUnique1_3(uint x, uint idx)
-    {
-        return x % primes[idx];
-    }
 
     v3[] centeredTriangle = [v3(-0.5, -0.5, 0.0), v3(0.0, 0.5, 0.0), v3(0.5, -0.5,
         0.0)];
@@ -731,7 +727,7 @@ int main()
                 //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
                 //renderTriangle(TriangleColor);
                 drawDiamant(TriangleColor);
-                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "1");
+                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "hello");
                 //drawCircle(thisp, 1.0);
 
             }
@@ -836,12 +832,12 @@ align(1):
 
 static immutable font_8x8 = cast(immutable ubyte[]) import ("font8x8_rgb.bmp");
 
-byte[] font_pixels;
+ubyte[] font_pixels;
 
 static this()
 {
     const fHeader = *cast(BMPHeader*) &font_8x8[0];
-    font_pixels = cast(byte[]) font_8x8[fHeader.bfOffBits .. $];
+    font_pixels = cast(ubyte[]) font_8x8[fHeader.bfOffBits .. $];
     
     for(int pos = 0; pos < font_pixels.length; pos += 8)
     {
@@ -890,8 +886,8 @@ void print_pixels()
     {
         foreach(x; 0 .. Width)
         {
-            int c = font_pixels[3* (x + ( Width * y))];
-            printf(c == -1 ? "x" : " ");
+            int c = font_pixels[(x + ( Width * y))];
+            printf(c != -1 ? "x" : " ");
         }
         printf("\n");
     }
@@ -899,29 +895,25 @@ void print_pixels()
 }
 
 
-byte[8][8] getGlyph(int idx)
+ubyte[8][8] getGlyph(int idx)
 {
     printf("GetGlyph (%d) :\n", idx);
+    assert(idx > -2);
     if (idx == -1)
         return typeof(return).init;
 
-    byte[8][8] result = 0;
+    ubyte[8][8] result = 0;
+
     {
         foreach(y;0 .. 8)
         {
-            const pos = (y * 64) + idx; 
+            auto ix = idx % 16;
+            auto iy = idx / 16;
+            const pos = ((iy) * 128) + (ix * 8); 
             result[y][0 .. 8] = font_pixels[pos .. pos + 8];
         }
     }
 
-    foreach(y;0 .. 8)
-    {
-        foreach(x;0 .. 8)
-        {
-           printf(result[y][x] != -1 ? "x" : " ");
-        }
-        printf("\n");
-    }
     return result;
 }
 
@@ -932,13 +924,14 @@ void drawText(renderer* r, v2 lowerLeftCorner, v2 upperRightCorner, string text)
 
 	foreach(c;text)
 	{
+        writeln("c = '", c, "'");
 		const idx = char_idx(c);
 		// for now we are going to ignorep
 		if (!idx || idx == -1)
 		{
 		}
-        draw8x8(r, lowerLeftCorner, upperRightCorner, getGlyph(64));
-
-
+        	draw8x8(r, lowerLeftCorner, upperRightCorner, getGlyph(idx));
+                lowerLeftCorner.x += 0.04;
+                upperRightCorner.x += 0.04;
 	}
 }
