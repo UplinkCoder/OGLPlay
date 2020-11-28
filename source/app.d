@@ -330,7 +330,7 @@ init_opengl_result InitOpenGL(v2 winDim = v2(1024, 786))
 
 void ShutdownOpenGL(init_opengl_result* gl) nothrow
 {
-    try    { printf("calledShutdownOpenGL\n"); } catch  {}
+    try    { printf("calledShutdownOpenGL\n"); } catch  (Throwable) {}
     // Deinitialize SDL at exit.
     SDL_GL_DeleteContext(gl.context);
     SDL_DestroyWindow(gl.window);
@@ -913,7 +913,11 @@ ubyte[8][8] getGlyph(int idx)
             result[y][0 .. 8] = font_pixels[pos .. pos + 8];
         }
     }
-
+/+
+    writeln(() {
+                
+    } ());
++/
     return result;
 }
 
