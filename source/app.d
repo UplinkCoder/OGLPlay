@@ -727,7 +727,7 @@ int main()
                 //drawChessBoard(thisp, v2(-1.0, -1.0), v2(1, 1), boardDim, &mySquare);
                 //renderTriangle(TriangleColor);
                 drawDiamant(TriangleColor);
-                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "hello");
+                drawText(thisp, v2(-0.3, -0.3), v2(0.3, 0.3), "hello world");
                 //drawCircle(thisp, 1.0);
 
             }
@@ -887,7 +887,7 @@ void print_pixels()
         foreach(x; 0 .. Width)
         {
             int c = font_pixels[(x + ( Width * y))];
-            printf(c != -1 ? "x" : " ");
+            printf(c > 100 ? "*" : c < 10 ? " " : ".");
         }
         printf("\n");
     }
@@ -897,27 +897,29 @@ void print_pixels()
 
 ubyte[8][8] getGlyph(int idx)
 {
-    printf("GetGlyph (%d) :\n", idx);
+    // printf("GetGlyph (%d) :\n", idx);
     assert(idx > -2);
     if (idx == -1)
         return typeof(return).init;
 
-    ubyte[8][8] result = 0;
+    const row = idx / 16;
+    const col = idx % 16;
 
+    const px = col * 8;
+    const py = (3 - row) * 1024;
+    int p = px + py;
+
+    ubyte[8][8] result = 0;
     {
         foreach(y;0 .. 8)
         {
-            auto ix = idx % 16;
-            auto iy = idx / 16;
-            const pos = ((iy) * 128) + (ix * 8); 
-            result[y][0 .. 8] = font_pixels[pos .. pos + 8];
+            foreach(x; 0 .. 8)
+            {
+                result[y][x] = font_pixels[p + x];
+            }
+            p += (8 * 16);
         }
     }
-/+
-    writeln(() {
-                
-    } ());
-+/
     return result;
 }
 
